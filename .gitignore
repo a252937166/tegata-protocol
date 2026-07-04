@@ -1,0 +1,23 @@
+# deps
+node_modules/
+contracts/lib/
+contracts/cache/
+contracts/out/
+contracts/broadcast/**/dry-run/
+
+# env & secrets — never commit keys
+.env
+.env.*
+!.env.example
+*.key
+
+# build
+app/.next/
+app/out/
+dist/
+
+# misc
+.DS_Store
+*.log
+packets/*.json
+!packets/sample-compliance-packet.json
