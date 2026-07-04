@@ -1,0 +1,20 @@
+{
+  "chainId": 133,
+  "rpc": "https://testnet.hsk.xyz",
+  "explorer": "https://testnet-explorer.hsk.xyz",
+  "contracts": {
+    "KycGate": "0xA36E8c13Ca1eF6493d9F57D74E1470fB3427Ee46",
+    "TegataRegistry": "0xE95D2E98955238F253436DFA7A057bbB1aBC3092",
+    "SettlementAnchor": "0x4e4739b08593dDfB8C66Ad03808d11064f906042"
+  },
+  "attestor": "0x38F0F604e715F5Dc4089D7BdCbD8aD8d0aF830f1",
+  "hsp": {
+    "chain": "hashkey-testnet",
+    "coordinatorUrl": "https://hsp-hackathon.hashkeymerchant.com",
+    "stablecoin": "0x8FE3cB719Ee4410E236Cd6b72ab1fCDC06eF53c6",
+    "pinnedAdapterAddress": "0x467AaF355DF243379B961Ce00abBae20c1e25012",
+    "pinnedIssuerAddress": "0x087f7e5566c41ba4f321206b6671b382a4b91ac6",
+    "pinnedAt": "2026-07-05T00:00:00+08:00",
+    "pinNote": "adapter pinned out-of-band from GET /chains at integration time; compliance issuer pinned from the deployment's issuer identity (cross-checked against /issuers); both hardcoded per HSP trust model"
+  }
+}

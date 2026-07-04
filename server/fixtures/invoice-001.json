@@ -1,0 +1,13 @@
+{
+  "documentType": "invoice",
+  "invoiceNumber": "SMW-2026-0142",
+  "seller": "Sakura Metal Works K.K. (Yokohama)",
+  "payer": "Yamato Retail Holdings Co., Ltd.",
+  "description": "Precision-machined shelving brackets, batch 42 — 2,500 units",
+  "amount": "5.00",
+  "currency": "USDC",
+  "issueDate": "2026-07-01",
+  "termDays": 30,
+  "paymentTerms": "NET-30, formerly settled by promissory note (yakusoku tegata)",
+  "note": "Demo document for the TEGATA Protocol hackathon build. Not a real receivable."
+}

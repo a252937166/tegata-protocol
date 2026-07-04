@@ -1,0 +1,162 @@
+import { cfg } from './config.ts';
+
+/**
+ * AI underwriting: invoice field extraction + risk assessment.
+ *
+ * Uses the configured autonomous underwriting model when LLM_* env vars are
+ * set; otherwise falls back to a deterministic rule engine so the pipeline
+ * stays reproducible offline. Every output is tagged with its engine and
+ * hashed on-chain (riskReportHash) — the document itself never leaves the
+ * server.
+ */
+
+export interface InvoiceFields {
+  invoiceNumber: string;
+  sellerName: string;
+  payerName: string;
+  amountBaseUnits: string; // stablecoin base units (6 decimals), decimal string
+  currency: string;
+  issueDate: string; // ISO date
+  termDays: number;
+  confidence: number; // 0..1
+}
+
+export interface RiskReport {
+  engine: 'llm' | 'deterministic-rules';
+  grade: 'A' | 'B' | 'C';
+  discountBps: number; // discount charged up-front, in basis points of face
+  rationale: string;
+  factors: Record<string, string>;
+  assessedAt: string;
+}
+
+async function callLLM(prompt: string): Promise<string | null> {
+  const { baseUrl, apiKey, model } = cfg.llm;
+  if (!baseUrl || !apiKey || !model) return null;
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, '')}/v1/messages`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { content?: { type: string; text?: string }[] };
+    return data.content?.find((c) => c.type === 'text')?.text ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function extractJson(text: string): unknown | null {
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[0]);
+  } catch {
+    return null;
+  }
+}
+
+export async function parseInvoice(documentText: string): Promise<InvoiceFields> {
+  const llmText = await callLLM(
+    [
+      'Extract structured fields from this invoice document. Reply with ONLY a JSON object:',
+      '{"invoiceNumber": string, "sellerName": string, "payerName": string,',
+      ' "amountBaseUnits": string (amount in stablecoin base units, 6 decimals — e.g. "5.00" => "5000000"),',
+      ' "currency": string, "issueDate": "YYYY-MM-DD", "termDays": number, "confidence": number 0..1}',
+      '',
+      '--- DOCUMENT ---',
+      documentText,
+    ].join('\n'),
+  );
+  if (llmText) {
+    const parsed = extractJson(llmText) as Partial<InvoiceFields> | null;
+    if (parsed?.amountBaseUnits && parsed.invoiceNumber) {
+      return {
+        invoiceNumber: String(parsed.invoiceNumber),
+        sellerName: String(parsed.sellerName ?? 'unknown'),
+        payerName: String(parsed.payerName ?? 'unknown'),
+        amountBaseUnits: String(parsed.amountBaseUnits),
+        currency: String(parsed.currency ?? 'USDC'),
+        issueDate: String(parsed.issueDate ?? new Date().toISOString().slice(0, 10)),
+        termDays: Number(parsed.termDays ?? 30),
+        confidence: Math.min(1, Math.max(0, Number(parsed.confidence ?? 0.8))),
+      };
+    }
+  }
+  // deterministic fallback: fixtures are structured JSON documents
+  const doc = extractJson(documentText) as Record<string, unknown> | null;
+  if (!doc) throw new Error('cannot parse invoice document');
+  const amount = String(doc.amount ?? '0');
+  const baseUnits = /^\d+$/.test(amount)
+    ? amount
+    : String(Math.round(parseFloat(amount) * 1e6));
+  return {
+    invoiceNumber: String(doc.invoiceNumber ?? doc.invoice_no ?? 'INV-UNKNOWN'),
+    sellerName: String(doc.seller ?? doc.sellerName ?? 'unknown'),
+    payerName: String(doc.payer ?? doc.payerName ?? 'unknown'),
+    amountBaseUnits: baseUnits,
+    currency: String(doc.currency ?? 'USDC'),
+    issueDate: String(doc.issueDate ?? new Date().toISOString().slice(0, 10)),
+    termDays: Number(doc.termDays ?? 30),
+    confidence: 0.99,
+  };
+}
+
+export async function assessRisk(fields: InvoiceFields): Promise<RiskReport> {
+  const llmText = await callLLM(
+    [
+      'You are an autonomous receivables underwriter for invoice discounting.',
+      'Assess this invoice and reply with ONLY a JSON object:',
+      '{"grade": "A"|"B"|"C", "discountBps": number (annualized-equivalent up-front discount, 100..800),',
+      ' "rationale": string (2-3 sentences, professional), "factors": {string: string}}',
+      'Grade A = strong payer & short tenor; C = weak signals. Be conservative.',
+      '',
+      `Invoice: ${JSON.stringify(fields)}`,
+    ].join('\n'),
+  );
+  if (llmText) {
+    const parsed = extractJson(llmText) as Partial<RiskReport> | null;
+    if (parsed?.grade && parsed.discountBps) {
+      return {
+        engine: 'llm',
+        grade: (['A', 'B', 'C'].includes(String(parsed.grade)) ? parsed.grade : 'B') as RiskReport['grade'],
+        discountBps: Math.min(800, Math.max(100, Math.round(Number(parsed.discountBps)))),
+        rationale: String(parsed.rationale ?? ''),
+        factors: (parsed.factors as Record<string, string>) ?? {},
+        assessedAt: new Date().toISOString(),
+      };
+    }
+  }
+  // deterministic fallback rules
+  const amount = Number(BigInt(fields.amountBaseUnits) / 1000000n);
+  const tenorRisk = fields.termDays <= 30 ? 0 : fields.termDays <= 60 ? 1 : 2;
+  const sizeRisk = amount <= 10_000 ? 0 : amount <= 100_000 ? 1 : 2;
+  const score = tenorRisk + sizeRisk;
+  const grade: RiskReport['grade'] = score <= 1 ? 'A' : score <= 2 ? 'B' : 'C';
+  const discountBps = 150 + score * 125;
+  return {
+    engine: 'deterministic-rules',
+    grade,
+    discountBps,
+    rationale:
+      `Tenor ${fields.termDays}d and face value ${amount} ${fields.currency} imply ${grade}-grade risk ` +
+      `under the fallback rule set; up-front discount ${(discountBps / 100).toFixed(2)}%.`,
+    factors: { tenorDays: String(fields.termDays), faceValue: `${amount} ${fields.currency}` },
+    assessedAt: new Date().toISOString(),
+  };
+}
+
+/** discounted = face * (1 - discountBps/10000), floored to integer base units */
+export function discountedAmount(faceBaseUnits: bigint, discountBps: number): bigint {
+  return (faceBaseUnits * BigInt(10_000 - discountBps)) / 10_000n;
+}
