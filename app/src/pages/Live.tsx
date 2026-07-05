@@ -260,12 +260,22 @@ export default function Live() {
                 key={inv.id}
                 onClick={() => setPicked(inv)}
                 className={`card p-4 text-left transition-all cursor-pointer hover:-translate-y-0.5 ${
-                  picked?.id === inv.id ? 'ring-2 ring-(--accent)' : ''
+                  picked?.id === inv.id
+                    ? '!border-(--accent) !border-2 !bg-(--accent-soft)'
+                    : picked
+                      ? 'opacity-50 hover:opacity-90'
+                      : ''
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-bold text-sm">{inv.fields!.invoiceNumber}</span>
-                  <span className="badge badge-registered">#{inv.id}</span>
+                  {picked?.id === inv.id ? (
+                    <span className="badge" style={{ color: 'var(--accent)', background: 'var(--accent-soft)' }}>
+                      ✓ #{inv.id}
+                    </span>
+                  ) : (
+                    <span className="badge badge-registered">#{inv.id}</span>
+                  )}
                 </div>
                 <div className="text-xs text-ink2 mt-1">{inv.fields!.sellerName}</div>
                 <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs mt-2.5 tabular-nums">
