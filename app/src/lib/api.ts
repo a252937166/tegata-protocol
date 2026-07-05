@@ -32,6 +32,8 @@ export interface ApiInvoice {
   packetHash: `0x${string}`;
   fields: InvoiceFields | null;
   risk: RiskReport | null;
+  reserved?: boolean;
+  reservedBy?: string | null;
 }
 export interface AppConfig {
   chain: { id: number; name: string; rpc: string; explorer: string; nativeSymbol: string };

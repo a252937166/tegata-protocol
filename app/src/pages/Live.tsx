@@ -85,10 +85,15 @@ export default function Live() {
   const [repaying, setRepaying] = useState(false);
   const [repayResult, setRepayResult] = useState<{ hspExplorerUrl: string; invoice: ApiInvoice } | null>(null);
 
-  const openInvoices = useMemo(
-    () => (invData?.invoices ?? []).filter((i) => i.status === 'Registered' && i.fields),
-    [invData],
-  );
+  const openInvoices = useMemo(() => {
+    // hide invoices another visitor is actively funding (soft reservation);
+    // keep the one THIS visitor picked visible even while reserved for them
+    const mineOrFree = (i: ApiInvoice) =>
+      !i.reserved || (address && i.reservedBy?.toLowerCase() === address.toLowerCase());
+    const list = (invData?.invoices ?? []).filter((i) => i.status === 'Registered' && i.fields && mineOrFree(i));
+    if (picked && picked.status === 'Registered' && !list.some((i) => i.id === picked.id)) list.unshift(picked);
+    return list;
+  }, [invData, picked, address]);
 
   const hasFunds = (gasBal?.value ?? 0n) > 0n && ((usdcBal as bigint | undefined) ?? 0n) > 0n;
   const kycOk = Boolean(kyc?.ok);

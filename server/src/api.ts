@@ -57,6 +57,17 @@ async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> 
   }
 }
 
+// Soft reservations: entering the funding step locks an invoice for that payer
+// so two visitors can't race the same receivable (the second one's transfer
+// would land on-chain but lose the markFunded race). The contract stays the
+// source of truth; this only prevents wasted settlements at demo scale.
+const RESERVATION_MS = 4 * 60_000;
+const reservations = new Map<string, { payer: string; until: number }>();
+function activeReservation(invoiceId: string) {
+  const r = reservations.get(invoiceId);
+  return r && r.until > Date.now() ? r : undefined;
+}
+
 // naive per-IP rate limiter (protects operator keys + faucet relay)
 const hits = new Map<string, { n: number; t: number }>();
 function limited(req: IncomingMessage, route: string, max: number): boolean {
@@ -121,7 +132,9 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const out = [];
     for (let i = 1n; i < next; i++) {
       try {
-        out.push(await enrich(i, await getInvoice(i)));
+        const inv = await enrich(i, await getInvoice(i));
+        const r = activeReservation(inv.id);
+        out.push({ ...inv, reserved: Boolean(r), reservedBy: r?.payer ?? null });
       } catch {
         /* skip */
       }
@@ -225,6 +238,11 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     let amount: bigint;
     if (leg === 'funding') {
       if (STATUS_LABELS[inv.status] !== 'Registered') return json(res, 409, { error: `invoice is ${STATUS_LABELS[inv.status]}` });
+      const r = activeReservation(invoiceId.toString());
+      if (r && r.payer.toLowerCase() !== payer.toLowerCase()) {
+        return json(res, 409, { error: 'reserved', detail: 'another visitor is funding this invoice right now — pick a different one' });
+      }
+      reservations.set(invoiceId.toString(), { payer, until: Date.now() + RESERVATION_MS });
       to = inv.borrower;
       amount = discountedAmount(inv.faceAmount, doc?.risk.discountBps ?? 200);
     } else {
