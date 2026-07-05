@@ -10,10 +10,174 @@ import {
 } from 'wagmi';
 import { hashTypedData } from 'viem';
 import { hashkeyTestnet, ERC20_ABI } from '../lib/wagmi';
-import { api, type ApiInvoice } from '../lib/api';
+import { api, type ApiInvoice, type InvoiceFields, type RiskReport } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { Spinner, StatusBadge, ExtLink, CopyText } from '../components/ui';
 import { usdc, shortAddr, shortHash, tsToDate } from '../lib/format';
+
+const SAMPLE_DOC = () =>
+  JSON.stringify(
+    {
+      documentType: 'invoice',
+      invoiceNumber: `AOI-2026-${String(Date.now()).slice(-6)}`,
+      seller: 'Aoi Textile Works K.K. (Kyoto)',
+      payer: 'Umeda Trading Co., Ltd.',
+      description: 'Indigo-dyed fabric rolls, summer lot',
+      amount: '1.40',
+      currency: 'USDC',
+      issueDate: new Date().toISOString().slice(0, 10),
+      termDays: 45,
+      paymentTerms: 'NET-45, replacing paper tegata workflow',
+      note: 'Demo document for the TEGATA Protocol hackathon build. Not a real receivable.',
+    },
+    null,
+    2,
+  );
+
+function IssuePanel() {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const [doc, setDoc] = useState(SAMPLE_DOC);
+  const [busy, setBusy] = useState<'idle' | 'underwriting' | 'registering'>('idle');
+  const [error, setError] = useState('');
+  const [underwrote, setUnderwrote] = useState<{
+    fields: InvoiceFields;
+    risk: RiskReport;
+    invoiceHash: string;
+    riskReportHash: string;
+  } | null>(null);
+  const [registered, setRegistered] = useState<{ registerTx: string; invoice: ApiInvoice } | null>(null);
+
+  async function underwrite() {
+    setBusy('underwriting');
+    setError('');
+    setRegistered(null);
+    try {
+      setUnderwrote(await api.underwrite(doc));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy('idle');
+    }
+  }
+  async function register() {
+    setBusy('registering');
+    setError('');
+    try {
+      const r = await api.issue(doc);
+      setRegistered({ registerTx: r.registerTx, invoice: r.invoice });
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy('idle');
+    }
+  }
+
+  return (
+    <div className="card p-6 mt-14">
+      <div className="section-label">{t('issue.title')}</div>
+      <p className="text-sm text-ink2 mt-2.5 mb-4 leading-relaxed">{t('issue.sub')}</p>
+      <textarea
+        value={doc}
+        onChange={(e) => setDoc(e.target.value)}
+        rows={8}
+        spellCheck={false}
+        className="w-full mono text-xs rounded-xl border border-line bg-(--paper2)/60 p-4 outline-none focus:border-(--accent) transition-colors resize-y"
+      />
+      <div className="flex flex-wrap gap-2 mt-3">
+        <button className="btn btn-primary" disabled={busy !== 'idle'} onClick={underwrite}>
+          {busy === 'underwriting' ? (
+            <>
+              <Spinner /> {t('issue.running')}
+            </>
+          ) : (
+            t('issue.run')
+          )}
+        </button>
+        {underwrote && (
+          <button className="btn" disabled={busy !== 'idle'} onClick={register}>
+            {busy === 'registering' ? (
+              <>
+                <Spinner /> {t('issue.registering')}
+              </>
+            ) : (
+              t('issue.register')
+            )}
+          </button>
+        )}
+      </div>
+      {error && <div className="text-sm text-bad mt-3 break-all">{error}</div>}
+
+      {underwrote && (
+        <div className="grid gap-4 md:grid-cols-2 mt-5 fade-in">
+          <div className="rounded-xl border border-line bg-(--paper2)/50 p-5">
+            <div className="section-label mb-3">{t('issue.parsed')}</div>
+            <dl className="space-y-1.5 text-xs">
+              {(
+                [
+                  ['invoice #', underwrote.fields.invoiceNumber],
+                  ['seller', underwrote.fields.sellerName],
+                  ['payer', underwrote.fields.payerName],
+                  ['face', `$${usdc(underwrote.fields.amountBaseUnits)} ${underwrote.fields.currency}`],
+                  ['term', `${underwrote.fields.termDays} days`],
+                  ['confidence', underwrote.fields.confidence.toFixed(2)],
+                ] as const
+              ).map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-3">
+                  <dt className="text-ink3">{k}</dt>
+                  <dd className="text-right">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div className="rounded-xl border border-line bg-(--paper2)/50 p-5">
+            <div className="section-label mb-3">{t('issue.risk')}</div>
+            <div className="flex items-baseline gap-5">
+              <span className="font-display text-4xl font-bold text-accent">{underwrote.risk.grade}</span>
+              <span className="font-display text-xl font-bold tabular-nums">
+                {(underwrote.risk.discountBps / 100).toFixed(2)}%
+              </span>
+              <span className="ml-auto text-xs text-ink3">
+                {t('issue.engine')}: <b>{underwrote.risk.engine}</b>
+              </span>
+            </div>
+            <p className="text-xs text-ink2 mt-3 leading-relaxed">{underwrote.risk.rationale}</p>
+          </div>
+          <div className="md:col-span-2 rounded-xl border border-line bg-(--paper2)/50 p-5">
+            <div className="section-label mb-3">{t('issue.onchain')}</div>
+            <dl className="space-y-1.5 text-xs">
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <dt className="text-ink3">invoiceHash</dt>
+                <dd>
+                  <CopyText text={underwrote.invoiceHash} display={shortHash(underwrote.invoiceHash, 22)} />
+                </dd>
+              </div>
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <dt className="text-ink3">riskReportHash</dt>
+                <dd>
+                  <CopyText text={underwrote.riskReportHash} display={shortHash(underwrote.riskReportHash, 22)} />
+                </dd>
+              </div>
+              {registered && (
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <dt className="text-ink3">register tx</dt>
+                  <dd className="flex items-center gap-3">
+                    <ExtLink href={`https://testnet-explorer.hsk.xyz/tx/${registered.registerTx}`} className="mono">
+                      {shortHash(registered.registerTx, 16)}
+                    </ExtLink>
+                    <span className="badge badge-repaid">✓ Tegata #{registered.invoice.id}</span>
+                  </dd>
+                </div>
+              )}
+            </dl>
+            {registered && <p className="text-xs text-good font-semibold mt-3">{t('issue.registered')}</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type FundPhase = 'idle' | 'preparing' | 'signing' | 'broadcast' | 'observing' | 'done' | 'error';
 
@@ -415,6 +579,8 @@ export default function Live() {
           </div>
         </div>
       </div>
+
+      <IssuePanel />
     </div>
   );
 }

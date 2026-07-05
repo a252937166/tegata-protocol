@@ -46,7 +46,21 @@ export interface AppConfig {
     pinnedIssuerAddress: `0x${string}`;
   };
   demo: { borrower: `0x${string}` };
-  mainnet: { deployed: boolean; note: string };
+  mainnet:
+    | { deployed: false; note: string }
+    | {
+        deployed: true;
+        chainId: number;
+        explorer: string;
+        contracts: { KycGate: string; TegataRegistry: string; SettlementAnchor: string };
+        proof: {
+          sampleInvoiceId?: string;
+          registerTxHash?: string;
+          packetAnchorTxHash?: string;
+          invoiceHash?: string;
+          packetHash?: string;
+        } | null;
+      };
 }
 export interface PreparedPayment {
   paymentId: `0x${string}`;
@@ -85,6 +99,15 @@ export const api = {
       '/api/ai/underwrite',
       { documentText },
     ),
+  issue: (documentText: string) =>
+    req<{
+      fields: InvoiceFields;
+      risk: RiskReport;
+      invoiceHash: `0x${string}`;
+      riskReportHash: `0x${string}`;
+      registerTx: string;
+      invoice: ApiInvoice;
+    }>('POST', '/api/issue', { documentText }),
   prepare: (payer: string, invoiceId: string, leg: 'funding' | 'repayment') =>
     req<PreparedPayment>('POST', '/api/hsp/prepare', { payer, invoiceId, leg }),
   submit: (p: {

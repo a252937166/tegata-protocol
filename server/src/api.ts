@@ -9,12 +9,13 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getAddress, parseEther, type Address, type Hex } from 'viem';
-import { cfg, repoRoot, hspExplorerUrl } from './config.ts';
+import { cfg, repoRoot, hspExplorerUrl, mainnetDeployment } from './config.ts';
 import {
   getInvoice,
   nextInvoiceId,
   checkKyc,
   setDemoAttestation,
+  registerInvoice,
   walletFor,
   withOperatorLock,
   publicClient,
@@ -122,8 +123,16 @@ async function route(req: IncomingMessage, res: ServerResponse) {
         pinnedAdapterAddress: cfg.pinnedAdapterAddress,
         pinnedIssuerAddress: cfg.pinnedIssuerAddress,
       },
-      demo: { borrower: borrowerAccount.address, attestor: cfg.contracts.SettlementAnchor },
-      mainnet: { deployed: false, note: 'mainnet deployment pending — rehearsed on testnet' },
+      demo: { borrower: borrowerAccount.address },
+      mainnet: mainnetDeployment
+        ? {
+            deployed: true,
+            chainId: mainnetDeployment.chainId,
+            explorer: mainnetDeployment.explorer,
+            contracts: mainnetDeployment.contracts,
+            proof: mainnetDeployment.proof ?? null,
+          }
+        : { deployed: false, note: 'mainnet deployment pending — rehearsed on testnet, same bytecode' },
     });
   }
 
@@ -208,6 +217,43 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       return { gasTx, usdcTx };
     });
     return json(res, 200, { source: 'team-treasury-fallback', ...drip, sent: { gas: '0.005 HSK', usdc: '2' } });
+  }
+
+  // Borrower demo: AI-underwrite a document and register it as an open
+  // receivable from the demo SME (judges trigger AI underwriting end-to-end).
+  if (path === '/api/issue' && method === 'POST') {
+    if (limited(req, 'issue', 6)) return json(res, 429, { error: 'rate-limited' });
+    const { documentText } = await readBody(req);
+    const text = String(documentText ?? '');
+    if (!text || text.length > 20_000) return json(res, 400, { error: 'documentText required (max 20k chars)' });
+    const fields = await parseInvoice(text);
+    const risk = await assessRisk(fields);
+    const invoiceHash = keccakOfBytes(Buffer.from(text));
+    const riskReportHash = keccakOfJson(risk);
+    putDoc(invoiceHash, { fields, risk, documentText: text, riskReportHash });
+    const dueDate = BigInt(Math.floor(Date.now() / 1000) + Math.max(1, fields.termDays) * 86_400);
+    try {
+      const reg = await registerInvoice(cfg.borrowerKey, {
+        invoiceHash,
+        faceAmount: BigInt(fields.amountBaseUnits),
+        dueDate,
+        riskReportHash,
+      });
+      return json(res, 200, {
+        fields,
+        risk,
+        invoiceHash,
+        riskReportHash,
+        registerTx: reg.txHash,
+        invoice: await enrich(reg.id, await getInvoice(reg.id)),
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (msg.includes('DuplicateInvoice')) {
+        return json(res, 409, { error: 'this exact document is already registered — change something (e.g. the invoice number) and try again' });
+      }
+      throw e;
+    }
   }
 
   if (path === '/api/ai/underwrite' && method === 'POST') {

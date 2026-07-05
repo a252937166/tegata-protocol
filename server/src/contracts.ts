@@ -99,23 +99,36 @@ export async function checkKyc(subject: Address) {
   return { ok, mode, level, modeLabel: ['none', 'official-sbt', 'demo-attestor'][mode] };
 }
 
+/** Borrower-key writes get their own queue (separate nonce space from the operator). */
+let borrowerQueue: Promise<unknown> = Promise.resolve();
+function withBorrowerLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = borrowerQueue.then(fn, fn);
+  borrowerQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 export async function registerInvoice(
   borrowerKey: `0x${string}`,
   args: { invoiceHash: `0x${string}`; faceAmount: bigint; dueDate: bigint; riskReportHash: `0x${string}` },
 ) {
-  const { client, account } = walletFor(borrowerKey);
-  const hash = await client.writeContract({
-    address: cfg.contracts.TegataRegistry,
-    abi: TegataRegistryAbi,
-    functionName: 'registerInvoice',
-    args: [args.invoiceHash, args.faceAmount, args.dueDate, args.riskReportHash],
-    account,
+  return withBorrowerLock(async () => {
+    const { client, account } = walletFor(borrowerKey);
+    const hash = await client.writeContract({
+      address: cfg.contracts.TegataRegistry,
+      abi: TegataRegistryAbi,
+      functionName: 'registerInvoice',
+      args: [args.invoiceHash, args.faceAmount, args.dueDate, args.riskReportHash],
+      account,
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const logs = parseEventLogs({ abi: TegataRegistryAbi, logs: receipt.logs, eventName: 'InvoiceRegistered' });
+    const id = (logs[0]?.args as { id?: bigint } | undefined)?.id;
+    if (id === undefined) throw new Error('InvoiceRegistered event missing');
+    return { id, txHash: hash };
   });
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  const logs = parseEventLogs({ abi: TegataRegistryAbi, logs: receipt.logs, eventName: 'InvoiceRegistered' });
-  const id = (logs[0]?.args as { id?: bigint } | undefined)?.id;
-  if (id === undefined) throw new Error('InvoiceRegistered event missing');
-  return { id, txHash: hash };
 }
 
 export interface SettlementEvidence {

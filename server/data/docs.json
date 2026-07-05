@@ -21,7 +21,7 @@
       },
       "assessedAt": "2026-07-05T07:13:48.462Z"
     },
-    "documentText": "{\n  \"invoiceNumber\": \"SMW-2026-28461A\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets \u2014 2,500 units\",\n  \"amount\": \"1.20\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-02\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "documentText": "{\n  \"invoiceNumber\": \"SMW-2026-28461A\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets — 2,500 units\",\n  \"amount\": \"1.20\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-02\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
     "riskReportHash": "0x23316e56de1be6a3e22efc3d23ac045cfbd68242f9d41f5e33b5957db2f7e07b"
   },
   "0x068e10484130a695682e704e69eb96dad47c5e9d3c98cd7312bf756f82b9838a": {
@@ -71,7 +71,7 @@
       },
       "assessedAt": "2026-07-05T07:13:59.379Z"
     },
-    "documentText": "{\n  \"invoiceNumber\": \"NPR-2026-28461C\",\n  \"seller\": \"Naniwa Precision Robotics K.K. (Osaka)\",\n  \"payer\": \"Kansai Logistics Partners Co., Ltd.\",\n  \"description\": \"Conveyor actuator maintenance kits \u2014 lot 7\",\n  \"amount\": \"2.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-03\",\n  \"termDays\": 45,\n  \"paymentTerms\": \"NET-45, replacing paper tegata workflow\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "documentText": "{\n  \"invoiceNumber\": \"NPR-2026-28461C\",\n  \"seller\": \"Naniwa Precision Robotics K.K. (Osaka)\",\n  \"payer\": \"Kansai Logistics Partners Co., Ltd.\",\n  \"description\": \"Conveyor actuator maintenance kits — lot 7\",\n  \"amount\": \"2.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-03\",\n  \"termDays\": 45,\n  \"paymentTerms\": \"NET-45, replacing paper tegata workflow\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
     "riskReportHash": "0x9f911b687f745bff8a6af6ab1d72e27647c667f89a4308d0be39b22d18111ee1"
   },
   "0xc28543db392e9fd6093433ddd31f91c19fdabd19b157417234cd5e677c8f1145": {
@@ -173,5 +173,137 @@
     },
     "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"KGF-2026-183557\",\n  \"seller\": \"Kanda Godo Foods LLC (Tokyo)\",\n  \"payer\": \"Hoshikawa Department Stores Inc.\",\n  \"description\": \"Seasonal wagashi assortment\",\n  \"amount\": \"0.80\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-05\",\n  \"termDays\": 60,\n  \"paymentTerms\": \"NET-60 rolling settlement\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
     "riskReportHash": "0x14cabc49e6359b406ecf356c881188ffe2c4595be2a539844e809cfc513c169a"
+  },
+  "0xb038638d847689830c0d7535415d33be4acd2224ec955b96c93090cf4909e3fe": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-201705",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "5000000",
+      "currency": "USDC",
+      "issueDate": "2026-07-01",
+      "termDays": 30,
+      "confidence": 1
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 150,
+      "rationale": "Tenor 30d and face value 5 USDC imply A-grade risk under the fallback rule set; up-front discount 1.50%.",
+      "factors": {
+        "tenorDays": "30",
+        "faceValue": "5 USDC"
+      },
+      "assessedAt": "2026-07-05T12:23:51.038Z"
+    },
+    "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"SMW-2026-201705\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets, batch 42 — 2,500 units\",\n  \"amount\": \"5.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-01\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0x6cc9dbdc19b232c6d41433bcd0bc39138802136e311084112bd207fe18a6aafa"
+  },
+  "0x3516a28cc9152299f5a219fe1093e6d531f012103331e3fc68aa10f21fc9aaf0": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-432931",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "5000000",
+      "currency": "USDC",
+      "issueDate": "2026-07-01",
+      "termDays": 30,
+      "confidence": 1
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 150,
+      "rationale": "Tenor 30d and face value 5 USDC imply A-grade risk under the fallback rule set; up-front discount 1.50%.",
+      "factors": {
+        "tenorDays": "30",
+        "faceValue": "5 USDC"
+      },
+      "assessedAt": "2026-07-05T12:27:56.342Z"
+    },
+    "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"SMW-2026-432931\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets, batch 42 — 2,500 units\",\n  \"amount\": \"5.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-01\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0xf3892d88b0324ad36e83e7987e808eff807e106961a67abbb300a272f41814dd"
+  },
+  "0xcf4fc494252d4071f2c7d5314b9724ada523c12c8836000e4d4870e2f65e3081": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-605661",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "5000000",
+      "currency": "USDC",
+      "issueDate": "2026-07-01",
+      "termDays": 30,
+      "confidence": 1
+    },
+    "risk": {
+      "engine": "llm",
+      "grade": "B",
+      "discountBps": 400,
+      "rationale": "The payer is a retail holding company likely to have adequate credit standing, and the 30-day tenor is short, reducing exposure. However, the invoice is in USDC, a stablecoin, introducing settlement and cryptocurrency-related risk, and the amount of 5,000,000 USDC is substantial, warranting a moderate discount.",
+      "factors": {
+        "payerCredit": "Adequate – mid-sized Japanese retail holding company",
+        "tenor": "30 days – low duration risk",
+        "currency": "USDC – stablecoin, additional crypto settlement risk",
+        "amount": "5,000,000 USDC – large, concentration risk",
+        "confidence": "Platform confidence high"
+      },
+      "assessedAt": "2026-07-05T12:30:29.743Z"
+    },
+    "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"SMW-2026-605661\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets, batch 42 — 2,500 units\",\n  \"amount\": \"5.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-01\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0x1d42a13538865f2b03761259b6cb8784ea520232ee2e985a6228e2c0bb2066cc"
+  },
+  "0x69205beb33cc2bd47af765d1f7c3954f54c886afe4465edb5a974e63adc5251a": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-708656",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "5000000",
+      "currency": "USDC",
+      "issueDate": "2026-07-01",
+      "termDays": 30,
+      "confidence": 1
+    },
+    "risk": {
+      "engine": "llm",
+      "grade": "B",
+      "discountBps": 500,
+      "rationale": "The payer, Yamato Retail Holdings, is an unrated entity with no strong credit history available, making payment risk moderate. While the 30-day tenor is short, the $5M size and use of USDC introduce liquidity and currency conversion concerns. A 500 bps annualized discount compensates for elevated risk.",
+      "factors": {
+        "payerCreditworthiness": "Unrated, likely a medium-sized Japanese holding company",
+        "invoiceCurrency": "USDC (crypto stablecoin) introduces non-traditional risk",
+        "tenorDays": "30 days, short and favorable",
+        "amount": "$5M, large exposure"
+      },
+      "assessedAt": "2026-07-05T12:32:25.037Z"
+    },
+    "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"SMW-2026-708656\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets, batch 42 — 2,500 units\",\n  \"amount\": \"5.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-01\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0xcf5d1a1d76998a0fbf0ea5ebec53f82d59cb845ce97f684d1d172921f9bf4b9b"
+  },
+  "0xcc0dc32f9eb221f7ae8371a7dab0b6a15eb2dae69ccddfb61b5d7ff0df6c5626": {
+    "fields": {
+      "invoiceNumber": "CURL-2026-1783255273",
+      "sellerName": "Suzuran Paper Mills K.K. (Nagoya)",
+      "payerName": "Chubu Stationery Wholesale Ltd.",
+      "amountBaseUnits": "900000",
+      "currency": "USDC",
+      "issueDate": "2026-07-05",
+      "termDays": 30,
+      "confidence": 1
+    },
+    "risk": {
+      "engine": "llm",
+      "grade": "B",
+      "discountBps": 350,
+      "rationale": "The payer is a regional stationery wholesaler with likely moderate credit strength. The use of USDC as the invoice currency introduces additional regulatory and operational uncertainties, despite the short 30-day tenor and high data confidence. A conservative discount is applied.",
+      "factors": {
+        "payerIndustry": "Stationery wholesale",
+        "paymentMethod": "USDC stablecoin",
+        "tenor": "30 days",
+        "confidence": "High (1)"
+      },
+      "assessedAt": "2026-07-05T12:41:44.771Z"
+    },
+    "documentText": "{\"documentType\":\"invoice\",\"invoiceNumber\":\"CURL-2026-1783255273\",\"seller\":\"Suzuran Paper Mills K.K. (Nagoya)\",\"payer\":\"Chubu Stationery Wholesale Ltd.\",\"description\":\"Washi paper stock, autumn lot\",\"amount\":\"0.90\",\"currency\":\"USDC\",\"issueDate\":\"2026-07-05\",\"termDays\":30,\"paymentTerms\":\"NET-30\"}",
+    "riskReportHash": "0xa579dc08ad439ac0f6c6033c9148028e809a97036b40f338618f9d92cad99e52"
   }
 }

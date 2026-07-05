@@ -43,15 +43,26 @@ async function callLLM(prompt: string): Promise<string | null> {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1024,
+        // reasoning models spend output tokens on thinking before the text
+        // block — a small cap starves the answer entirely
+        max_tokens: 8192,
         messages: [{ role: 'user', content: prompt }],
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(90_000),
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-    return data.content?.find((c) => c.type === 'text')?.text ?? null;
-  } catch {
+    if (!res.ok) {
+      console.warn(`[ai] llm backend ${res.status} — falling back to rules`);
+      return null;
+    }
+    const data = (await res.json()) as {
+      content?: { type: string; text?: string }[];
+      stop_reason?: string;
+    };
+    const text = data.content?.find((c) => c.type === 'text')?.text ?? null;
+    if (!text) console.warn(`[ai] llm returned no text block (stop: ${data.stop_reason}) — falling back to rules`);
+    return text;
+  } catch (e) {
+    console.warn(`[ai] llm backend unreachable (${(e as Error).name}) — falling back to rules`);
     return null;
   }
 }

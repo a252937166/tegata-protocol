@@ -28,6 +28,19 @@ export default function Footer() {
                 </ExtLink>
               </div>
             ))}
+          {cfg?.mainnet.deployed ? (
+            <>
+              <div className="section-label mb-2 mt-4">Contracts · mainnet</div>
+              {(Object.entries(cfg.mainnet.contracts) as [string, string][]).map(([name, addr]) => (
+                <div key={name} className="flex items-center gap-2 text-ink2">
+                  <span className="w-32 flex-none">{name}</span>
+                  <ExtLink href={`${cfg.mainnet.deployed ? cfg.mainnet.explorer : ''}/address/${addr}`} className="mono">
+                    {shortAddr(addr)}
+                  </ExtLink>
+                </div>
+              ))}
+            </>
+          ) : null}
         </div>
         <div className="text-xs space-y-1.5">
           <div className="section-label mb-2">HSP</div>

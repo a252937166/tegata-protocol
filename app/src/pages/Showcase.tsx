@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useLang } from '../lib/i18n';
-import { StatusBadge, ExtLink, CopyText, CheckRow, Spinner } from '../components/ui';
+import { StatusBadge, ExtLink, CopyText, CheckRow, Spinner, OfflineVerifyHint } from '../components/ui';
 import { usdc, shortHash } from '../lib/format';
 
 export default function Showcase() {
@@ -169,6 +169,8 @@ export default function Showcase() {
         )}
 
         {showJson && <pre className="json-view fade-in">{JSON.stringify(packet, null, 2)}</pre>}
+
+        <OfflineVerifyHint packetName="sample-compliance-packet.json" />
       </div>
     </div>
   );

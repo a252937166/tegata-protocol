@@ -71,6 +71,20 @@ export function CopyText({ text, display }: { text: string; display?: string }) 
   );
 }
 
+export function OfflineVerifyHint({ packetName }: { packetName: string }) {
+  const { t } = useLang();
+  return (
+    <div className="rounded-xl border border-line bg-(--paper2)/50 p-5 mt-4">
+      <div className="text-sm font-bold mb-1.5">{t('offline.title')}</div>
+      <p className="text-xs text-ink2 leading-relaxed mb-3">{t('offline.b')}</p>
+      <pre className="json-view !max-h-none !py-3 text-[0.7rem]">{`git clone https://github.com/a252937166/tegata-protocol
+git clone https://github.com/project-hsp/hsp   # side by side
+cd tegata-protocol/server && npm install
+npx tsx src/verify-packet.ts ../packets/${packetName}`}</pre>
+    </div>
+  );
+}
+
 export function CheckRow({ pass, label }: { pass: boolean; label: string }) {
   const { t } = useLang();
   return (

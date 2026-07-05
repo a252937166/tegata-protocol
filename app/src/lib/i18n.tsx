@@ -121,6 +121,23 @@ const dict = {
     'live.done.packet': 'Open compliance packet',
     'live.reset': 'Run again with another invoice',
 
+    'issue.title': 'Borrower demo: issue a Tegata',
+    'issue.sub':
+      'The other side of the market — watch the AI underwriter work. Edit the invoice document, run underwriting, then register it on-chain as an open receivable (issued by the demo SME).',
+    'issue.run': 'Run AI underwriting',
+    'issue.running': 'Underwriting…',
+    'issue.register': 'Register on HashKey Testnet',
+    'issue.registering': 'Registering on-chain…',
+    'issue.registered': 'Registered — it just joined the open pool above',
+    'issue.parsed': 'Parsed fields',
+    'issue.risk': 'Risk assessment',
+    'issue.engine': 'engine',
+    'issue.onchain': 'Goes on-chain (hashes only — never the document)',
+
+    'offline.title': 'Verify this packet offline — without trusting us',
+    'offline.b':
+      'The packet is self-contained evidence. Download it, clone the repo, and re-run the full verification yourself: it re-runs the HSP verifier against the pinned adapter + issuer, recomputes evidenceHash, checks the SettlementAnchor records, and compares packetHash with TegataRegistry.',
+
     'inv.title': 'Invoice registry',
     'inv.sub': 'Every record lives on HashKey Chain testnet — click through to the explorer.',
     'inv.borrower': 'Borrower (SME)',
@@ -138,7 +155,7 @@ const dict = {
     'proof.testnet': 'HashKey Chain Testnet · chainId 133 — the live demo environment',
     'proof.mainnet': 'HashKey Chain Mainnet · chainId 177',
     'proof.mainnetPending':
-      'Mainnet deployment pending (deployment scripts rehearsed on testnet; same bytecode). This page will list the verified mainnet addresses and the anchored sample packet hash.',
+      'Mainnet deployment in progress (same bytecode, rehearsed end-to-end on testnet; scripts/deploy-mainnet.sh). Verified addresses and the anchored sample packet hash will appear here the moment it lands.',
     'proof.contract': 'Contract',
     'proof.verified': 'verified source',
     'proof.pinned': 'Pinned HSP trust config (out-of-band)',
@@ -146,6 +163,17 @@ const dict = {
     'proof.issuer': 'Compliance issuer (kyc + sanctions)',
     'proof.stablecoin': 'Settlement stablecoin (testnet USDC)',
     'proof.coordinator': 'Coordinator (public reads need no key)',
+    'proof.sample': 'Sample packet — a real, repaid lifecycle',
+    'proof.sample.invoiceHash': 'invoiceHash',
+    'proof.sample.packetHash': 'packetHash',
+    'proof.sample.fundingId': 'funding paymentId',
+    'proof.sample.repaymentId': 'repayment paymentId',
+    'proof.kycMode': 'KYC gate mode',
+    'proof.kycMode.b':
+      'Official HashKey Chain KYC SBT support is implemented and checked first (isHuman / getKycInfo, level threshold). This demo environment runs in disclosed demo-attestor mode because hackathon wallets hold no production KYC SBT. Per-payment compliance is separately proven by HSP kyc + sanctions attestations.',
+    'proof.mainnetProofTx': 'Mainnet anchors',
+    'proof.registerTx': 'sample invoice register tx',
+    'proof.packetTx': 'sample packetHash anchor tx',
 
     'common.loading': 'Loading…',
     'common.error': 'Something went wrong',
@@ -275,6 +303,23 @@ const dict = {
     'live.done.packet': 'コンプライアンスパケットを開く',
     'live.reset': '別の請求書でもう一度',
 
+    'issue.title': '借り手デモ:手形を発行する',
+    'issue.sub':
+      '市場の反対側 — AI与信エンジンの動きをご覧ください。請求書ドキュメントを編集し、与信を実行し、デモSME発行の債権としてオンチェーン登録します。',
+    'issue.run': 'AI与信を実行',
+    'issue.running': '与信実行中…',
+    'issue.register': 'HashKeyテストネットに登録',
+    'issue.registering': 'オンチェーン登録中…',
+    'issue.registered': '登録完了 — 上の未割引プールに追加されました',
+    'issue.parsed': '抽出フィールド',
+    'issue.risk': 'リスク評価',
+    'issue.engine': 'エンジン',
+    'issue.onchain': 'オンチェーンに載る値(ハッシュのみ — 書類本体は載りません)',
+
+    'offline.title': 'このパケットをオフラインで検証 — 当社を信頼せずに',
+    'offline.b':
+      'パケットは自己完結型の証拠です。ダウンロードしてリポジトリをクローンし、ご自身で完全な検証を再実行できます:ピン留めされたアダプター+発行者に対するHSP検証の再実行、evidenceHashの再計算、SettlementAnchor記録の照合、packetHashとTegataRegistryの比較を行います。',
+
     'inv.title': '請求書レジストリ',
     'inv.sub': 'すべての記録はHashKey Chainテストネット上に。エクスプローラーで確認できます。',
     'inv.borrower': '借り手(SME)',
@@ -292,7 +337,7 @@ const dict = {
     'proof.testnet': 'HashKey Chainテストネット · chainId 133 — ライブデモ環境',
     'proof.mainnet': 'HashKey Chainメインネット · chainId 177',
     'proof.mainnetPending':
-      'メインネットデプロイは準備中です(スクリプトはテストネットでリハーサル済み・同一バイトコード)。検証済みメインネットアドレスとサンプルパケットハッシュのアンカーをここに掲載予定です。',
+      'メインネットデプロイは進行中です(同一バイトコード、テストネットでエンドツーエンドのリハーサル済み)。検証済みアドレスとサンプルパケットハッシュのアンカーは、完了次第ここに表示されます。',
     'proof.contract': 'コントラクト',
     'proof.verified': '検証済みソース',
     'proof.pinned': 'ピン留めHSPトラスト設定(アウトオブバンド)',
@@ -300,6 +345,17 @@ const dict = {
     'proof.issuer': 'コンプライアンス発行者(KYC+制裁)',
     'proof.stablecoin': '決済ステーブルコイン(テストUSDC)',
     'proof.coordinator': 'コーディネーター(公開読み取りは鍵不要)',
+    'proof.sample': 'サンプルパケット — 実際に償還済みのライフサイクル',
+    'proof.sample.invoiceHash': 'invoiceHash',
+    'proof.sample.packetHash': 'packetHash',
+    'proof.sample.fundingId': '資金提供 paymentId',
+    'proof.sample.repaymentId': '償還 paymentId',
+    'proof.kycMode': 'KYCゲートモード',
+    'proof.kycMode.b':
+      '公式HashKey Chain KYC SBTのサポートは実装済みで、常に最優先で照会されます(isHuman / getKycInfo、レベル閾値)。本デモ環境はハッカソン用ウォレットが本番KYC SBTを保有しないため、明示されたデモアテスターモードで動作します。各決済のコンプライアンスはHSPのKYC+制裁アテステーションで別途証明されます。',
+    'proof.mainnetProofTx': 'メインネットアンカー',
+    'proof.registerTx': 'サンプル請求書登録トランザクション',
+    'proof.packetTx': 'サンプルpacketHashアンカートランザクション',
 
     'common.loading': '読み込み中…',
     'common.error': 'エラーが発生しました',

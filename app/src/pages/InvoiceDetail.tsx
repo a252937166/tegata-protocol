@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useLang } from '../lib/i18n';
-import { StatusBadge, Spinner, ExtLink, CopyText, CheckRow } from '../components/ui';
+import { StatusBadge, Spinner, ExtLink, CopyText, CheckRow, OfflineVerifyHint } from '../components/ui';
 import { usdc, shortAddr, shortHash, tsToDate, isZeroHash } from '../lib/format';
 
 const EXPLORER = 'https://testnet-explorer.hsk.xyz';
@@ -196,6 +196,8 @@ export default function InvoiceDetail() {
             </div>
           )}
           {showJson && <pre className="json-view fade-in">{JSON.stringify(packet.data.packet, null, 2)}</pre>}
+
+          <OfflineVerifyHint packetName={`tegata-${inv.id}.json`} />
         </div>
       )}
     </div>

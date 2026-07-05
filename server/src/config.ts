@@ -24,6 +24,26 @@ function req(name: string): string {
   return v;
 }
 
+export interface MainnetDeployment {
+  chainId: number;
+  rpc: string;
+  explorer: string;
+  contracts: { KycGate: `0x${string}`; TegataRegistry: `0x${string}`; SettlementAnchor: `0x${string}` };
+  proof?: {
+    sampleInvoiceId?: string;
+    registerTxHash?: string;
+    packetAnchorTxHash?: string;
+    invoiceHash?: string;
+    packetHash?: string;
+  };
+}
+
+const mainnetPath = resolve(repoRoot, 'deployments', 'hashkey-mainnet.json');
+/** Present once the mainnet proof deployment has run (scripts/deploy-mainnet.sh). */
+export const mainnetDeployment: MainnetDeployment | null = existsSync(mainnetPath)
+  ? (JSON.parse(readFileSync(mainnetPath, 'utf8')) as MainnetDeployment)
+  : null;
+
 const deployment = JSON.parse(
   readFileSync(resolve(repoRoot, 'deployments', 'hashkey-testnet.json'), 'utf8'),
 ) as {
