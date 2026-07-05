@@ -21,7 +21,7 @@
       },
       "assessedAt": "2026-07-05T07:13:48.462Z"
     },
-    "documentText": "{\n  \"invoiceNumber\": \"SMW-2026-28461A\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets — 2,500 units\",\n  \"amount\": \"1.20\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-02\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "documentText": "{\n  \"invoiceNumber\": \"SMW-2026-28461A\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets \u2014 2,500 units\",\n  \"amount\": \"1.20\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-02\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
     "riskReportHash": "0x23316e56de1be6a3e22efc3d23ac045cfbd68242f9d41f5e33b5957db2f7e07b"
   },
   "0x068e10484130a695682e704e69eb96dad47c5e9d3c98cd7312bf756f82b9838a": {
@@ -71,7 +71,7 @@
       },
       "assessedAt": "2026-07-05T07:13:59.379Z"
     },
-    "documentText": "{\n  \"invoiceNumber\": \"NPR-2026-28461C\",\n  \"seller\": \"Naniwa Precision Robotics K.K. (Osaka)\",\n  \"payer\": \"Kansai Logistics Partners Co., Ltd.\",\n  \"description\": \"Conveyor actuator maintenance kits — lot 7\",\n  \"amount\": \"2.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-03\",\n  \"termDays\": 45,\n  \"paymentTerms\": \"NET-45, replacing paper tegata workflow\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "documentText": "{\n  \"invoiceNumber\": \"NPR-2026-28461C\",\n  \"seller\": \"Naniwa Precision Robotics K.K. (Osaka)\",\n  \"payer\": \"Kansai Logistics Partners Co., Ltd.\",\n  \"description\": \"Conveyor actuator maintenance kits \u2014 lot 7\",\n  \"amount\": \"2.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-03\",\n  \"termDays\": 45,\n  \"paymentTerms\": \"NET-45, replacing paper tegata workflow\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
     "riskReportHash": "0x9f911b687f745bff8a6af6ab1d72e27647c667f89a4308d0be39b22d18111ee1"
   },
   "0xc28543db392e9fd6093433ddd31f91c19fdabd19b157417234cd5e677c8f1145": {
@@ -123,6 +123,31 @@
     },
     "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"SMW-2026-178559\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets\",\n  \"amount\": \"1.20\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-05\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
     "riskReportHash": "0x23f436b5a0f307b283d447f89e935961d23524a4ec43dba4cffd224f8786fb35"
+  },
+  "0x2af212c1bbaa4dc15f24fb2bd4ae805d36c603bc5d547c109002674ddd431fd6": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-185375",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "1200000",
+      "currency": "USDC",
+      "issueDate": "2026-07-05",
+      "termDays": 30,
+      "confidence": 1
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 150,
+      "rationale": "Tenor 30d and face value 1 USDC imply A-grade risk under the fallback rule set; up-front discount 1.50%.",
+      "factors": {
+        "tenorDays": "30",
+        "faceValue": "1 USDC"
+      },
+      "assessedAt": "2026-07-05T12:06:58.654Z"
+    },
+    "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"SMW-2026-185375\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets\",\n  \"amount\": \"1.20\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-05\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0x87160038a4b892a32a1474c08ac3efe73cb766d12d40e5ffc928e9acdc1eee3f"
   },
   "0x461d893e2f6bad318c5046b28a387bcb7e8a6f3e9cc8b6a61e5751000a9b8d3a": {
     "fields": {

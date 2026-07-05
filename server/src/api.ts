@@ -381,5 +381,7 @@ createServer((req, res) => {
 }).listen(PORT, () => {
   console.log(`tegata-api listening on :${PORT}`);
   console.log(`demo SME (borrower): ${borrowerAccount.address}`);
-  startReplenishLoop();
+  // exactly ONE instance may replenish (chain state is shared; two writers
+  // fork the off-chain document store) — set REPLENISH_DISABLED=1 on dev runs
+  if (!process.env.REPLENISH_DISABLED) startReplenishLoop();
 });
