@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useAccount,
@@ -115,12 +115,18 @@ export default function Live() {
     }
   }
 
+  // guards against a stale run overwriting state after the user cancels
+  const runRef = useRef(0);
+
   async function fund() {
     if (!address || !walletClient || !picked) return;
+    const run = ++runRef.current;
+    const alive = () => runRef.current === run;
     setFundError('');
     try {
       setPhase('preparing');
       const prepared = await api.prepare(address, picked.id, 'funding');
+      if (!alive()) return;
 
       setPhase('signing');
       const typedData = prepared.toSign[0].params.typedData as Parameters<typeof hashTypedData>[0];
@@ -129,6 +135,7 @@ export default function Live() {
         throw new Error('typed-data digest does not match paymentId — refusing to sign');
       }
       const mandateSignature = await walletClient.signTypedData(typedData as never);
+      if (!alive()) return;
 
       setPhase('broadcast');
       const tx = prepared.toSign[1].params.tx;
@@ -138,6 +145,7 @@ export default function Live() {
         value: 0n,
         chain: hashkeyTestnet,
       });
+      if (!alive()) return;
 
       setPhase('observing');
       const submitted = await api.submit({
@@ -148,14 +156,22 @@ export default function Live() {
         mandateSignature,
         txHash,
       });
+      if (!alive()) return;
       setResult(submitted);
       setPhase('done');
       qc.invalidateQueries({ queryKey: ['invoices'] });
       refetchUsdc();
     } catch (e) {
+      if (!alive()) return;
       setFundError((e as Error).message);
       setPhase('error');
     }
+  }
+
+  function cancelFund() {
+    runRef.current++; // orphan the in-flight run; late wallet approval is ignored
+    setPhase('idle');
+    setFundError('');
   }
 
   async function repay() {
@@ -288,12 +304,22 @@ export default function Live() {
           )}
           {phase === 'error' && <div className="text-sm text-bad mt-3 break-all">{fundError}</div>}
           {['preparing', 'signing', 'broadcast', 'observing'].includes(phase) && (
-            <div className="flex items-center gap-2.5 text-sm text-ink2 mt-2">
-              <Spinner className="text-accent" />
-              {phase === 'preparing' && t('live.fund.preparing')}
-              {phase === 'signing' && t('live.fund.signing')}
-              {phase === 'broadcast' && t('live.fund.broadcast')}
-              {phase === 'observing' && t('live.fund.observing')}
+            <div className="mt-2">
+              <div className="flex items-center gap-2.5 text-sm text-ink2">
+                <Spinner className="text-accent" />
+                {phase === 'preparing' && t('live.fund.preparing')}
+                {phase === 'signing' && t('live.fund.signing')}
+                {phase === 'broadcast' && t('live.fund.broadcast')}
+                {phase === 'observing' && t('live.fund.observing')}
+                {phase !== 'observing' && (
+                  <button className="btn btn-ghost !py-1 !px-2.5 text-xs" onClick={cancelFund}>
+                    {t('live.fund.cancel')}
+                  </button>
+                )}
+              </div>
+              {(phase === 'signing' || phase === 'broadcast') && (
+                <p className="text-xs text-ink3 mt-2 max-w-lg leading-relaxed">{t('live.fund.hint')}</p>
+              )}
             </div>
           )}
         </StepShell>

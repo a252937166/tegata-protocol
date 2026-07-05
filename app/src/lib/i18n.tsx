@@ -111,6 +111,9 @@ const dict = {
     'live.fund.signing': 'Waiting for wallet…',
     'live.fund.broadcast': 'Broadcasting settlement…',
     'live.fund.observing': 'Coordinator observing · independent verification · anchoring…',
+    'live.fund.hint':
+      'No wallet prompt? Click your wallet extension icon in the browser toolbar — the request may be queued there. Reject any stale requests from earlier attempts first.',
+    'live.fund.cancel': 'Cancel',
     'live.done.title': 'ACCEPT — verified and anchored',
     'live.done.b': 'You are now the lender of record. The demo SME’s agent can repay at maturity — or trigger it now:',
     'live.done.repay': 'Trigger repayment (SME agent)',
@@ -262,6 +265,9 @@ const dict = {
     'live.fund.signing': 'ウォレットの承認待ち…',
     'live.fund.broadcast': '決済をブロードキャスト中…',
     'live.fund.observing': 'コーディネーター観測 · 独立検証 · アンカー中…',
+    'live.fund.hint':
+      'ウォレットの確認画面が出ない場合は、ブラウザ右上のウォレット拡張アイコンをクリックしてください。リクエストが待機列に入っている場合があります。以前の古いリクエストは先に拒否してください。',
+    'live.fund.cancel': 'キャンセル',
     'live.done.title': 'ACCEPT — 検証・アンカー完了',
     'live.done.b': 'あなたが正式な貸し手になりました。デモSMEのエージェントが償還を実行できます:',
     'live.done.repay': '償還を実行(SMEエージェント)',
