@@ -305,5 +305,32 @@
     },
     "documentText": "{\"documentType\":\"invoice\",\"invoiceNumber\":\"CURL-2026-1783255273\",\"seller\":\"Suzuran Paper Mills K.K. (Nagoya)\",\"payer\":\"Chubu Stationery Wholesale Ltd.\",\"description\":\"Washi paper stock, autumn lot\",\"amount\":\"0.90\",\"currency\":\"USDC\",\"issueDate\":\"2026-07-05\",\"termDays\":30,\"paymentTerms\":\"NET-30\"}",
     "riskReportHash": "0xa579dc08ad439ac0f6c6033c9148028e809a97036b40f338618f9d92cad99e52"
+  },
+  "0x7ec4356766b5c0842c0957a77734031ab09430b2c06ccda376501d6d396550dd": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-880853",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "5000000",
+      "currency": "USDC",
+      "issueDate": "2026-07-01",
+      "termDays": 30,
+      "confidence": 1
+    },
+    "risk": {
+      "engine": "llm",
+      "grade": "A",
+      "discountBps": 250,
+      "rationale": "Yamato Retail Holdings is a well-established corporate payer with strong credit standing, making default risk very low. The invoice has a short 30-day tenor, further minimizing exposure. A confidence score of 1.0 indicates verified, high-certainty receivables, and the small face value of 5.00 USDC does not alter the fundamental credit strength.",
+      "factors": {
+        "payerCredit": "Yamato Retail Holdings Co., Ltd. – strong corporate",
+        "tenor": "30 days – short duration",
+        "confidence": "1.0 – high certainty",
+        "invoiceValidity": "Clear details, no discrepancies"
+      },
+      "assessedAt": "2026-07-05T15:05:12.306Z"
+    },
+    "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"SMW-2026-880853\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets, batch 42 — 2,500 units\",\n  \"amount\": \"5.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-01\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0x1fe94189322c1427db21e6206a46a19becbbc6e9deeb0f0fd11d13a17f8d096b"
   }
 }

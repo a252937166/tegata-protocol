@@ -124,6 +124,9 @@ export async function parseInvoice(documentText: string): Promise<InvoiceFields>
 }
 
 export async function assessRisk(fields: InvoiceFields): Promise<RiskReport> {
+  // never let the model interpret base units on its own — hand it the
+  // human-readable value and say exactly how to refer to it
+  const amountHuman = (Number(BigInt(fields.amountBaseUnits)) / 1e6).toFixed(2);
   const llmText = await callLLM(
     [
       'You are an autonomous receivables underwriter for invoice discounting.',
@@ -131,8 +134,11 @@ export async function assessRisk(fields: InvoiceFields): Promise<RiskReport> {
       '{"grade": "A"|"B"|"C", "discountBps": number (annualized-equivalent up-front discount, 100..800),',
       ' "rationale": string (2-3 sentences, professional), "factors": {string: string}}',
       'Grade A = strong payer & short tenor; C = weak signals. Be conservative.',
+      `The face value is exactly ${amountHuman} ${fields.currency} — a small demo-scale test amount.`,
+      `Refer to it as "${amountHuman} ${fields.currency}" if you mention it; never reinterpret its magnitude.`,
+      'Base your assessment on tenor, payer identity and workflow signals rather than exposure size.',
       '',
-      `Invoice: ${JSON.stringify(fields)}`,
+      `Invoice: ${JSON.stringify({ ...fields, amountHuman: `${amountHuman} ${fields.currency}` })}`,
     ].join('\n'),
   );
   if (llmText) {

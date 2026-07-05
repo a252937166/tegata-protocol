@@ -1,30 +1,30 @@
 {
   "packetVersion": "1",
   "protocol": "TEGATA Protocol",
-  "generatedAt": "2026-07-05T12:33:18.894Z",
+  "generatedAt": "2026-07-05T15:06:27.661Z",
   "invoice": {
-    "registryId": "13",
-    "invoiceHash": "0x69205beb33cc2bd47af765d1f7c3954f54c886afe4465edb5a974e63adc5251a",
+    "registryId": "15",
+    "invoiceHash": "0x7ec4356766b5c0842c0957a77734031ab09430b2c06ccda376501d6d396550dd",
     "faceAmountBaseUnits": "5000000",
     "currency": "USDC",
-    "dueDate": "2026-08-04T12:32:26.000Z",
+    "dueDate": "2026-08-04T15:05:14.000Z",
     "status": "Repaid",
-    "riskReportHash": "0xcf5d1a1d76998a0fbf0ea5ebec53f82d59cb845ce97f684d1d172921f9bf4b9b",
+    "riskReportHash": "0x1fe94189322c1427db21e6206a46a19becbbc6e9deeb0f0fd11d13a17f8d096b",
     "riskReport": {
       "engine": "llm",
-      "grade": "B",
-      "discountBps": 500,
-      "rationale": "The payer, Yamato Retail Holdings, is an unrated entity with no strong credit history available, making payment risk moderate. While the 30-day tenor is short, the $5M size and use of USDC introduce liquidity and currency conversion concerns. A 500 bps annualized discount compensates for elevated risk.",
+      "grade": "A",
+      "discountBps": 250,
+      "rationale": "Yamato Retail Holdings is a well-established corporate payer with strong credit standing, making default risk very low. The invoice has a short 30-day tenor, further minimizing exposure. A confidence score of 1.0 indicates verified, high-certainty receivables, and the small face value of 5.00 USDC does not alter the fundamental credit strength.",
       "factors": {
-        "payerCreditworthiness": "Unrated, likely a medium-sized Japanese holding company",
-        "invoiceCurrency": "USDC (crypto stablecoin) introduces non-traditional risk",
-        "tenorDays": "30 days, short and favorable",
-        "amount": "$5M, large exposure"
+        "payerCredit": "Yamato Retail Holdings Co., Ltd. – strong corporate",
+        "tenor": "30 days – short duration",
+        "confidence": "1.0 – high certainty",
+        "invoiceValidity": "Clear details, no discrepancies"
       },
-      "assessedAt": "2026-07-05T12:32:25.037Z"
+      "assessedAt": "2026-07-05T15:05:12.306Z"
     },
     "parsedFields": {
-      "invoiceNumber": "SMW-2026-708656",
+      "invoiceNumber": "SMW-2026-880853",
       "sellerName": "Sakura Metal Works K.K. (Yokohama)",
       "payerName": "Yamato Retail Holdings Co., Ltd.",
       "amountBaseUnits": "5000000",
@@ -45,15 +45,15 @@
     "legs": [
       {
         "leg": "funding",
-        "paymentId": "0x78e8885b1880d9337ba4bc479b3ad672f86ffe66992118d09046bf4c02bc1d7a",
+        "paymentId": "0xaea9050a5a30a56b9c4469590163c1c462a8e792bc56ae4971811f82c6e8920c",
         "settlementChain": {
           "name": "hashkey-testnet",
           "chainId": 133
         },
-        "settlementTxHash": "0x2232838bedc0dfcea9929cfe572a7d3de45ef372eeb2f18fff5feba30a5a17f0",
+        "settlementTxHash": "0x745fb437ef0351c1a46fa2724c95e64e7a04a59613bba413d659ab420c4f6161",
         "mandate": {
           "body": {
-            "nonce": "0x4daefc030bea735c51367b4792b486bb5410d008f44d75ff508ea5a016dfdbe3",
+            "nonce": "0xa01ae2a02b9143cd1211f13743591bc9d74fd7379c3d8c3d3ab32cdf2f0888a1",
             "signer": {
               "profileId": "0xd4fe0bde3910ed200206b4932a6ac949285964040c11741d6a19cbfb486cb03f",
               "payload": "0x0000000000000000000000007e8ce8482f1c50a1f63ed91b403c4525f1205984"
@@ -63,27 +63,27 @@
               "payload": "0x000000000000000000000000a38b918d9eb1c1367da2593d25665888a6980e4b"
             },
             "token": "0x8FE3cB719Ee4410E236Cd6b72ab1fCDC06eF53c6",
-            "amount": "4750000",
+            "amount": "4875000",
             "chainId": 133,
-            "deadline": 1783258353,
+            "deadline": 1783267529,
             "requiredCapabilitiesHash": "0xf81bb709919129365880ef370acb6013c85f505d74f9ddf8bf9db91547174b02"
           },
-          "signerProof": "0x512d2233d5e8c510b0e94579f2958310d73ac558a63c3682aeb0511b833596581d9fa244a310c798e39a2e3b515eae3b6bd944c206215fe8a17e46619a2965a11c",
+          "signerProof": "0xc5ce5cf5af5fd002e6df94194239d1de4bf2271901de7a0ad0f5c5a4be19644a51dd79c161fa317ae0c6153f80f376c6a5522bb0cb280d7127b13f6bfae4a8a11c",
           "requiredCapabilities": [
             "0xe176eab87495d286f7e5298e98297365377824ecdca366af968570f8230709c6",
             "0x847642c7392de44357b0ce6dab55c899131efa278eddcee385676a70750806eb"
           ]
         },
         "receipt": {
-          "mandateHash": "0x78e8885b1880d9337ba4bc479b3ad672f86ffe66992118d09046bf4c02bc1d7a",
+          "mandateHash": "0xaea9050a5a30a56b9c4469590163c1c462a8e792bc56ae4971811f82c6e8920c",
           "adapterId": "0xeeb081d6b4a5739edc5ce9a3ec05dcf768309684d7f3ebf29100f07ba89bb1b6",
           "adapterInstanceKey": "0x0000000000000000000000000000000000000000000000000000000000000000",
           "seq": 0,
           "outcome": 1,
-          "settledAt": 1783254758,
+          "settledAt": 1783263934,
           "proofSchemaId": "0xe8e90ba04c897d6cef649e8914cb250e2d10a0dc5f7955b4fe8547dada5ab14f",
-          "adapterProof": "0x0000000000000000000000007e8ce8482f1c50a1f63ed91b403c4525f1205984000000000000000000000000a38b918d9eb1c1367da2593d25665888a6980e4b0000000000000000000000008fe3cb719ee4410e236cd6b72ab1fcdc06ef53c60000000000000000000000000000000000000000000000000000000000487ab000000000000000000000000000000000000000000000000000000000000000852232838bedc0dfcea9929cfe572a7d3de45ef372eeb2f18fff5feba30a5a17f00000000000000000000000000000000000000000000000000000000001ca4883",
-          "adapterSignature": "0x74683079290c26caec45bd1b3f3ee4f94b040367d381d327134521986b6ae74f2c7088a6b951d3d84e1b7c01f1b503a975f1656a0a8cbc7a9b2603ae8e5662931c"
+          "adapterProof": "0x0000000000000000000000007e8ce8482f1c50a1f63ed91b403c4525f1205984000000000000000000000000a38b918d9eb1c1367da2593d25665888a6980e4b0000000000000000000000008fe3cb719ee4410e236cd6b72ab1fcdc06ef53c600000000000000000000000000000000000000000000000000000000004a62f80000000000000000000000000000000000000000000000000000000000000085745fb437ef0351c1a46fa2724c95e64e7a04a59613bba413d659ab420c4f61610000000000000000000000000000000000000000000000000000000001ca5a6f",
+          "adapterSignature": "0x052e74e5a1ea3d510bbfa86b0f252475dec444ef1129019a356b28fa26fb771c06261589e063fe085f99fcb0db2d106321f02da3487bb698ae639f7d4952163b1b"
         },
         "attestations": [
           {
@@ -100,9 +100,9 @@
               "id": "0x0000000000000000000000007e8ce8482f1c50a1f63ed91b403c4525f1205984"
             },
             "contextBinding": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "issuedAt": 1783254753,
-            "expiresAt": 1814790753,
-            "issuerSignature": "0xeaaf96b6c3092739b4358966b1197534a77e2ea5afc804f5fb005314f179f4ea3a26ae8fced8b71f7f40797368b5ff7d76eba5091c18a34510b44dbac8a58aa41c"
+            "issuedAt": 1783263928,
+            "expiresAt": 1814799928,
+            "issuerSignature": "0x1fda0108ed05ab9a17fe0966e553a839f76acc2684439702923ca8cf7e584b3b1462cd2740baf39bd7d352944af1d59c22899d05c09a97156408dc4980defb581b"
           },
           {
             "capabilityId": "0x723e8123b60bcbd45486f034cf58baf78465825066783b0d2f73a8954342db15",
@@ -118,34 +118,34 @@
               "id": "0x0000000000000000000000007e8ce8482f1c50a1f63ed91b403c4525f1205984"
             },
             "contextBinding": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "issuedAt": 1783254753,
-            "expiresAt": 1814790753,
-            "issuerSignature": "0x8fc30d612fadf22d704b2735dc1fd6d3d766e53c7d2ddbe3015c5ff64865d9ae4cef03021c5c5a9bde4555a4e0655904fa9b754f6a3d1bd67403f43b73fd12341c"
+            "issuedAt": 1783263929,
+            "expiresAt": 1814799929,
+            "issuerSignature": "0x2a154c684731cfda29c1ffc97e3560c9b82b9381a6aa0ce3d3b22f20cd2d0fb032efb19a685d6657a70ba06bff52108461e0a6d7bce5c2dbc5050eff045f25831c"
           }
         ],
         "verifierDecision": {
           "ok": true,
           "outcomeClass": "ACCEPT"
         },
-        "evidenceHash": "0xe6f17c52d43a708c9d91daf1513052d911a0fd357963be866d6349b3455ffe9a",
+        "evidenceHash": "0xfc28bd2ec7582e135c964f8e4ba746df96ce61832384cf7297c4a106f1c1d17d",
         "anchor": {
           "chainId": 133,
-          "txHash": "0x50027a21bafb07759f9039fd935688e800b721f64357d9675403b2d52a3a9711",
+          "txHash": "0x92629e2f6df049197fa4199009837c15901e34de854e7c6cdd1f6e95cc2b6f34",
           "contract": "0x4e4739b08593dDfB8C66Ad03808d11064f906042"
         },
-        "hspExplorerUrl": "https://hsp-hackathon.hashkeymerchant.com/explorer?id=0x78e8885b1880d9337ba4bc479b3ad672f86ffe66992118d09046bf4c02bc1d7a"
+        "hspExplorerUrl": "https://hsp-hackathon.hashkeymerchant.com/explorer?id=0xaea9050a5a30a56b9c4469590163c1c462a8e792bc56ae4971811f82c6e8920c"
       },
       {
         "leg": "repayment",
-        "paymentId": "0x5419ff68ae3e1268d3b88fdb34db7a1900079889b1603575cefb418c9371e3e5",
+        "paymentId": "0xa3dbe67c3cf38348885b906f8b08a5030812fb954ef816126477262c7e71275b",
         "settlementChain": {
           "name": "hashkey-testnet",
           "chainId": 133
         },
-        "settlementTxHash": "0x6dbb4b6a89d306be446301c834d5b2faa86525df1c8aba8c3aea1d1b9fe1ebcc",
+        "settlementTxHash": "0x0dd0d81799ddd200061594a3214777c6bb5236d0fb05912dafec49e8040f6ee2",
         "mandate": {
           "body": {
-            "nonce": "0x1fd53cbbf889e1cb40c7c5b7336c499a10701a68a54b40c0db4a778a2ecfac8b",
+            "nonce": "0x1d3213a48bb001526dcce4bb7b6bb2f023ac20dfe0e7ee9818f362c9c1e365cb",
             "signer": {
               "profileId": "0xd4fe0bde3910ed200206b4932a6ac949285964040c11741d6a19cbfb486cb03f",
               "payload": "0x000000000000000000000000a38b918d9eb1c1367da2593d25665888a6980e4b"
@@ -157,25 +157,25 @@
             "token": "0x8FE3cB719Ee4410E236Cd6b72ab1fCDC06eF53c6",
             "amount": "5000000",
             "chainId": 133,
-            "deadline": 1783258379,
+            "deadline": 1783267552,
             "requiredCapabilitiesHash": "0xf81bb709919129365880ef370acb6013c85f505d74f9ddf8bf9db91547174b02"
           },
-          "signerProof": "0xb5c7bb794e028dcade28fa8c4f56cf02365c774b6f3544c6ae0053ca0df9355c5ccb9d0e9751c3575defb50085369f6806dd29fe4e39c37255e75fc67b9dd7181c",
+          "signerProof": "0x2cb1a5597bc62e7d3b45858e16526b9cd7818480881357de74e31896bf716433134504a02b86d1db8a8331c9b53f0600f5da1d155070cc072be777d25e7c9ced1b",
           "requiredCapabilities": [
             "0xe176eab87495d286f7e5298e98297365377824ecdca366af968570f8230709c6",
             "0x847642c7392de44357b0ce6dab55c899131efa278eddcee385676a70750806eb"
           ]
         },
         "receipt": {
-          "mandateHash": "0x5419ff68ae3e1268d3b88fdb34db7a1900079889b1603575cefb418c9371e3e5",
+          "mandateHash": "0xa3dbe67c3cf38348885b906f8b08a5030812fb954ef816126477262c7e71275b",
           "adapterId": "0xeeb081d6b4a5739edc5ce9a3ec05dcf768309684d7f3ebf29100f07ba89bb1b6",
           "adapterInstanceKey": "0x0000000000000000000000000000000000000000000000000000000000000000",
           "seq": 0,
           "outcome": 1,
-          "settledAt": 1783254786,
+          "settledAt": 1783263956,
           "proofSchemaId": "0xe8e90ba04c897d6cef649e8914cb250e2d10a0dc5f7955b4fe8547dada5ab14f",
-          "adapterProof": "0x000000000000000000000000a38b918d9eb1c1367da2593d25665888a6980e4b0000000000000000000000007e8ce8482f1c50a1f63ed91b403c4525f12059840000000000000000000000008fe3cb719ee4410e236cd6b72ab1fcdc06ef53c600000000000000000000000000000000000000000000000000000000004c4b4000000000000000000000000000000000000000000000000000000000000000856dbb4b6a89d306be446301c834d5b2faa86525df1c8aba8c3aea1d1b9fe1ebcc0000000000000000000000000000000000000000000000000000000001ca4891",
-          "adapterSignature": "0xc7a279263bbf8dffef0b73e062134b134516293806b364aabd85c4dbeec5a17c53b000b7fcffdaa38db8708e86698fcce88147d8905d33290d2bf8f6d003dc9f1c"
+          "adapterProof": "0x000000000000000000000000a38b918d9eb1c1367da2593d25665888a6980e4b0000000000000000000000007e8ce8482f1c50a1f63ed91b403c4525f12059840000000000000000000000008fe3cb719ee4410e236cd6b72ab1fcdc06ef53c600000000000000000000000000000000000000000000000000000000004c4b4000000000000000000000000000000000000000000000000000000000000000850dd0d81799ddd200061594a3214777c6bb5236d0fb05912dafec49e8040f6ee20000000000000000000000000000000000000000000000000000000001ca5a7a",
+          "adapterSignature": "0x8112bf792699d74b7e746bff4fcf8184ffd96f54f8ec706dbc2de195847aaf022ceb9e636e32f6abbc67992deb40287dac0a047a12b8fe7d4e685a50dd4902bd1b"
         },
         "attestations": [
           {
@@ -192,9 +192,9 @@
               "id": "0x000000000000000000000000a38b918d9eb1c1367da2593d25665888a6980e4b"
             },
             "contextBinding": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "issuedAt": 1783254779,
-            "expiresAt": 1814790779,
-            "issuerSignature": "0x01eeedf27a891436b4238dad37cf7bdf02bb063ad87b8d9d853b6442b15e100950eb5cf2139757207a9afdb07ee40d15bf5215ee55222683688f956fadd4af451c"
+            "issuedAt": 1783263952,
+            "expiresAt": 1814799952,
+            "issuerSignature": "0xd8a14852ba6f52383d1f716c3a24ab9b4e313d212a4ce9943cfb88403a1990d602a80079e61b5db49619e2d78cc80bd4178665f51ee6c72d0de3c64289e46ac21c"
           },
           {
             "capabilityId": "0x723e8123b60bcbd45486f034cf58baf78465825066783b0d2f73a8954342db15",
@@ -210,22 +210,22 @@
               "id": "0x000000000000000000000000a38b918d9eb1c1367da2593d25665888a6980e4b"
             },
             "contextBinding": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "issuedAt": 1783254779,
-            "expiresAt": 1814790779,
-            "issuerSignature": "0x8bf767122a2cf9210ed156b15889d947e3d6eb796ba4f3e7f7e0ebe8e32de60558d13bce7e74828fb7f9550640c493521bf1149aecaa97730dea1ed913afb55c1c"
+            "issuedAt": 1783263952,
+            "expiresAt": 1814799952,
+            "issuerSignature": "0x34a2c90913ccd4d879417727f7976c5b3b88947fa110acddb98c508e77c78dcf3ff4c1b765eb885a7f7833b51ddd439ff6ba66671f4e9fef569c912bdf52e8541b"
           }
         ],
         "verifierDecision": {
           "ok": true,
           "outcomeClass": "ACCEPT"
         },
-        "evidenceHash": "0xc40e3d3e7a1d43de155c1056af599314f001f1a5c8880c3497d73b24b27c5c14",
+        "evidenceHash": "0x01145fd8d51402c581f2ad2dd47356f18d1cf29724015c22f9474805a464d8a5",
         "anchor": {
           "chainId": 133,
-          "txHash": "0x005757c1744e5b266057a144f1e76bc02ffe88c7b2953a24ac036b27474ebf11",
+          "txHash": "0x389d9cfe3ed723ea079bf24c5491e6e362417476d61257f44ce5380c52d5b07c",
           "contract": "0x4e4739b08593dDfB8C66Ad03808d11064f906042"
         },
-        "hspExplorerUrl": "https://hsp-hackathon.hashkeymerchant.com/explorer?id=0x5419ff68ae3e1268d3b88fdb34db7a1900079889b1603575cefb418c9371e3e5"
+        "hspExplorerUrl": "https://hsp-hackathon.hashkeymerchant.com/explorer?id=0xa3dbe67c3cf38348885b906f8b08a5030812fb954ef816126477262c7e71275b"
       }
     ],
     "pinnedTrustConfig": {
@@ -241,14 +241,14 @@
     "registry": {
       "chainId": 133,
       "contract": "0xE95D2E98955238F253436DFA7A057bbB1aBC3092",
-      "registerTxHash": "0xe3f12909bc0995d5bb84663fd6c6b3007e72e46f38528185779e136d650ccf59"
+      "registerTxHash": "0x82a50778871859a3c031f0d87692ca3921062a8c059ea4af289cd073674bdedb"
     },
     "settlementAnchors": {
       "chainId": 133,
       "contract": "0x4e4739b08593dDfB8C66Ad03808d11064f906042",
       "txHashes": [
-        "0x50027a21bafb07759f9039fd935688e800b721f64357d9675403b2d52a3a9711",
-        "0x005757c1744e5b266057a144f1e76bc02ffe88c7b2953a24ac036b27474ebf11"
+        "0x92629e2f6df049197fa4199009837c15901e34de854e7c6cdd1f6e95cc2b6f34",
+        "0x389d9cfe3ed723ea079bf24c5491e6e362417476d61257f44ce5380c52d5b07c"
       ]
     }
   },

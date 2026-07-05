@@ -174,6 +174,8 @@ const dict = {
     'proof.mainnetProofTx': 'Mainnet anchors',
     'proof.registerTx': 'sample invoice register tx',
     'proof.packetTx': 'sample packetHash anchor tx',
+    'proof.mainnetNote':
+      'The mainnet anchor is proof of deployment and state anchoring — the live money flow of the demo runs on testnet funds by design; no judge ever spends real assets.',
 
     'common.loading': 'Loading…',
     'common.error': 'Something went wrong',
@@ -356,6 +358,8 @@ const dict = {
     'proof.mainnetProofTx': 'メインネットアンカー',
     'proof.registerTx': 'サンプル請求書登録トランザクション',
     'proof.packetTx': 'サンプルpacketHashアンカートランザクション',
+    'proof.mainnetNote':
+      'メインネットアンカーはデプロイと状態アンカリングの証明です。デモの資金フローは設計上テストネット資金で動作し、審査員が実資産を使うことはありません。',
 
     'common.loading': '読み込み中…',
     'common.error': 'エラーが発生しました',

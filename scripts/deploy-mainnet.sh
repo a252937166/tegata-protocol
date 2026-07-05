@@ -52,17 +52,18 @@ done
 
 echo "== 3/4 anchor showcase proof =="
 cd "$ROOT"
-SAMPLE="packets/sample-compliance-packet.json"
-read -r INVOICE_HASH RISK_HASH PACKET_HASH FACE << EOF
+# NOTE: no empty columns here — bash `read` collapses whitespace-separated
+# fields, so an empty middle field would shift everything after it
+read -r INVOICE_HASH RISK_HASH FACE << EOF
 $(python3 - << 'PY'
 import json
 p = json.load(open('packets/sample-compliance-packet.json'))
 inv = p['invoice']
-import hashlib
-print(inv['invoiceHash'], inv['riskReportHash'], '', inv['faceAmountBaseUnits'])
+print(inv['invoiceHash'], inv['riskReportHash'], inv['faceAmountBaseUnits'])
 PY
 )
 EOF
+[ -n "$FACE" ] || { echo "ERROR: failed to read sample packet fields"; exit 1; }
 # packetHash must be recomputed the canonical way — reuse the server logic
 PACKET_HASH=$(cd server && npx tsx -e "
 import { readFileSync } from 'node:fs';

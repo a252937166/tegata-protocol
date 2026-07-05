@@ -15,7 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { cfg } from './config.ts';
+import { publicCfg as cfg } from './public-config.ts';
 import { keccakOfJson } from './canonical.ts';
 import { verifyIndependently, type PaymentSnapshot } from './hsp.ts';
 import { publicClient, SettlementAnchorAbi, getInvoice, STATUS_LABELS } from './contracts.ts';

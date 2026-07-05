@@ -88,6 +88,7 @@ export default function Proof() {
         ) : (
           <p className="text-sm text-ink2 leading-relaxed">{t('proof.mainnetPending')}</p>
         )}
+        <p className="text-xs text-ink3 leading-relaxed mt-4 border-t border-line pt-3">{t('proof.mainnetNote')}</p>
       </div>
 
       {/* testnet */}

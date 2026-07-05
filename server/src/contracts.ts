@@ -7,7 +7,7 @@ import {
   type Address,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { cfg } from './config.ts';
+import { publicCfg as cfg } from './public-config.ts';
 import KycGateAbi from './abi/KycGate.json' with { type: 'json' };
 import TegataRegistryAbi from './abi/TegataRegistry.json' with { type: 'json' };
 import SettlementAnchorAbi from './abi/SettlementAnchor.json' with { type: 'json' };
@@ -30,6 +30,16 @@ export function walletFor(privateKey: `0x${string}`) {
     account,
     client: createWalletClient({ account, chain: anchorChain, transport: http() }),
   };
+}
+
+/**
+ * Operator key, resolved LAZILY so that read-only importers of this module
+ * (the offline packet verifier above all) need no environment at all.
+ */
+function attestorKey(): `0x${string}` {
+  const v = process.env.ATTESTOR_PRIVATE_KEY;
+  if (!v) throw new Error('missing env: ATTESTOR_PRIVATE_KEY (operator writes need the attestor key)');
+  return v as `0x${string}`;
 }
 
 /**
@@ -146,7 +156,7 @@ export interface SettlementEvidence {
 
 export async function anchorSettlement(ev: SettlementEvidence, signature: `0x${string}`) {
   return withOperatorLock(async () => {
-    const { client, account } = walletFor(cfg.attestorKey);
+    const { client, account } = walletFor(attestorKey());
     const hash = await client.writeContract({
       address: cfg.contracts.SettlementAnchor,
       abi: SettlementAnchorAbi,
@@ -161,7 +171,7 @@ export async function anchorSettlement(ev: SettlementEvidence, signature: `0x${s
 
 export async function setPacketHash(invoiceId: bigint, packetHash: `0x${string}`) {
   return withOperatorLock(async () => {
-    const { client, account } = walletFor(cfg.attestorKey); // registry owner == deployer == attestor wallet
+    const { client, account } = walletFor(attestorKey()); // registry owner == deployer == attestor wallet
     const hash = await client.writeContract({
       address: cfg.contracts.TegataRegistry,
       abi: TegataRegistryAbi,
@@ -176,7 +186,7 @@ export async function setPacketHash(invoiceId: bigint, packetHash: `0x${string}`
 
 export async function setDemoAttestation(subject: Address, approved: boolean, note: string) {
   return withOperatorLock(async () => {
-    const { client, account } = walletFor(cfg.attestorKey);
+    const { client, account } = walletFor(attestorKey());
     const hash = await client.writeContract({
       address: cfg.contracts.KycGate,
       abi: KycGateAbi,

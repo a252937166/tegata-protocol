@@ -12,7 +12,7 @@ import type { Address } from 'viem';
 import { HSPVerifier } from '../../../hsp/packages/sdk/src/index.ts';
 import { resolveChain, type ChainName } from '../../../hsp/packages/core/src/chains/index.ts';
 import { KYC_FULL, SANCTIONS } from '../../../hsp/packages/core/src/policy/compliance.ts';
-import { cfg } from './config.ts';
+import { publicCfg as cfg } from './public-config.ts';
 
 export interface PaymentSnapshot {
   paymentId: `0x${string}`;

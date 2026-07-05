@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { repoRoot } from './config.ts';
+import { repoRoot } from './public-config.ts';
 import type { InvoiceFields, RiskReport } from './ai.ts';
 
 /**

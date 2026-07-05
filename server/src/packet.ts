@@ -1,4 +1,4 @@
-import { cfg } from './config.ts';
+import { publicCfg as cfg } from './public-config.ts';
 import { canonicalJson, keccakOfJson } from './canonical.ts';
 import type { Invoice } from './contracts.ts';
 import { STATUS_LABELS } from './contracts.ts';
