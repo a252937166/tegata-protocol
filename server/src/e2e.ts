@@ -13,6 +13,7 @@ import { resolve } from 'node:path';
 import { privateKeyToAccount } from 'viem/accounts';
 import { cfg, repoRoot, anchorTxUrl, hspExplorerUrl } from './config.ts';
 import { keccakOfBytes, keccakOfJson } from './canonical.ts';
+import { putDoc } from './docstore.ts';
 import { parseInvoice, assessRisk, discountedAmount } from './ai.ts';
 import {
   registerInvoice,
@@ -39,6 +40,7 @@ const invoiceHash = keccakOfBytes(docBytes);
 const fields = await parseInvoice(docBytes.toString('utf8'));
 const risk = await assessRisk(fields);
 const riskReportHash = keccakOfJson(risk);
+putDoc(invoiceHash, { fields, risk, documentText: docBytes.toString('utf8'), riskReportHash });
 console.log(`[1] parsed by ${risk.engine}: ${fields.invoiceNumber}, face ${fields.amountBaseUnits} (${fields.currency})`);
 console.log(`    risk grade ${risk.grade}, discount ${risk.discountBps} bps`);
 console.log(`    invoiceHash    ${invoiceHash}`);

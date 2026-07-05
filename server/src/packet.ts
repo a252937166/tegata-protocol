@@ -65,6 +65,17 @@ export interface CompliancePacket {
   disclaimer: string;
 }
 
+/**
+ * The packet hash is computed over a DETERMINISTIC projection of the packet:
+ * `generatedAt` (a courtesy display field) is excluded, so rebuilding the same
+ * on-chain state always reproduces the same hash. Everything else — triples,
+ * decisions, hashes, anchors — is content-addressed data.
+ */
+export function packetHashOf(packet: CompliancePacket): `0x${string}` {
+  const { generatedAt: _volatile, ...hashable } = packet;
+  return keccakOfJson(hashable);
+}
+
 export function buildPacket(params: {
   invoiceId: bigint;
   invoice: Invoice;
@@ -126,6 +137,6 @@ export function buildPacket(params: {
       'Demo workflow only; not a public offering of securities or financial services. ' +
       'Invoice documents never go on-chain — hashes only.',
   };
-  const packetHash = keccakOfJson(packet);
+  const packetHash = packetHashOf(packet);
   return { packet, packetHash, json: canonicalJson(packet) };
 }

@@ -1,7 +1,7 @@
 {
   "packetVersion": "1",
   "protocol": "TEGATA Protocol",
-  "generatedAt": "2026-07-04T16:10:58.430Z",
+  "generatedAt": "2026-07-05T07:24:09.347Z",
   "invoice": {
     "registryId": "3",
     "invoiceHash": "0xc28543db392e9fd6093433ddd31f91c19fdabd19b157417234cd5e677c8f1145",
@@ -48,7 +48,6 @@
           "name": "hashkey-testnet",
           "chainId": 133
         },
-        "settlementTxHash": "0x0f59e0c8805f911dc1614c4ec802be486dc87e24e4091d42c62ccce4e585398f",
         "mandate": {
           "body": {
             "nonce": "0xc3bdc22e3e1d30774c240f24793fad7be9828a0c269cfa3cd797841a12237b0d",
@@ -140,7 +139,6 @@
           "name": "hashkey-testnet",
           "chainId": 133
         },
-        "settlementTxHash": "0xcec9b1b27426c57b25578946bc484f393320870375bf9014a09612b327e498c6",
         "mandate": {
           "body": {
             "nonce": "0xbff29805869cca59fbf20f5ef8603f8b5c8648787d0b18622a6c9ad84731deaf",

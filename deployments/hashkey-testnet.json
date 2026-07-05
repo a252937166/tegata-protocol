@@ -2,6 +2,7 @@
   "chainId": 133,
   "rpc": "https://testnet.hsk.xyz",
   "explorer": "https://testnet-explorer.hsk.xyz",
+  "deployBlock": 29996995,
   "contracts": {
     "KycGate": "0xA36E8c13Ca1eF6493d9F57D74E1470fB3427Ee46",
     "TegataRegistry": "0xE95D2E98955238F253436DFA7A057bbB1aBC3092",

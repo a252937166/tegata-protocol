@@ -19,7 +19,7 @@ import { cfg } from './config.ts';
 import { keccakOfJson } from './canonical.ts';
 import { verifyIndependently, type PaymentSnapshot } from './hsp.ts';
 import { publicClient, SettlementAnchorAbi, getInvoice, STATUS_LABELS } from './contracts.ts';
-import type { CompliancePacket } from './packet.ts';
+import { packetHashOf, type CompliancePacket } from './packet.ts';
 
 const [packetPath] = process.argv.slice(2);
 if (!packetPath) throw new Error('usage: tsx src/verify-packet.ts <compliance-packet.json>');
@@ -76,9 +76,9 @@ for (const leg of packet.hspSettlement.legs) {
   );
 }
 
-// 3) packet hash vs TegataRegistry
+// 3) packet hash vs TegataRegistry (deterministic projection — generatedAt excluded)
 const invoice = await getInvoice(BigInt(packet.invoice.registryId));
-const packetHash = keccakOfJson(packet);
+const packetHash = packetHashOf(packet);
 check('packetHash matches TegataRegistry', invoice.packetHash === packetHash, packetHash);
 
 // 4) invoice cross-checks

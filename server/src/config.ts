@@ -30,6 +30,7 @@ const deployment = JSON.parse(
   chainId: number;
   rpc: string;
   explorer: string;
+  deployBlock: number;
   contracts: { KycGate: `0x${string}`; TegataRegistry: `0x${string}`; SettlementAnchor: `0x${string}` };
   attestor: `0x${string}`;
   hsp: {
@@ -61,6 +62,7 @@ export const cfg = {
   anchorChainId: deployment.chainId,
   anchorRpc: process.env.ANCHOR_RPC ?? deployment.rpc,
   anchorExplorer: deployment.explorer,
+  deployBlock: BigInt(deployment.deployBlock),
   contracts: deployment.contracts,
 
   // demo wallets (testnet-only; small faucet amounts)

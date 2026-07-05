@@ -26,9 +26,20 @@ export interface PaymentSnapshot {
 
 /** Fetch the (mandate, receipt, attestations) triple — public read, no key. */
 export async function fetchPaymentSnapshot(paymentId: string): Promise<PaymentSnapshot> {
-  const res = await fetch(`${cfg.coordinatorUrl}/payments/${paymentId}`);
-  if (!res.ok) throw new Error(`GET /payments/${paymentId} -> ${res.status}`);
-  return (await res.json()) as PaymentSnapshot;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(`${cfg.coordinatorUrl}/payments/${paymentId}`, {
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!res.ok) throw new Error(`GET /payments/${paymentId} -> ${res.status}`);
+      return (await res.json()) as PaymentSnapshot;
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 /**

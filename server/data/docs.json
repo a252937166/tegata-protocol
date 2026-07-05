@@ -1,0 +1,102 @@
+{
+  "0x1becb7ae7a22a732442aec8063ade9fd48fe0f7092c4ed13ae4af2ff143e5271": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-28461A",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "1200000",
+      "currency": "USDC",
+      "issueDate": "2026-07-02",
+      "termDays": 30,
+      "confidence": 0.99
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 150,
+      "rationale": "Tenor 30d and face value 1 USDC imply A-grade risk under the fallback rule set; up-front discount 1.50%.",
+      "factors": {
+        "tenorDays": "30",
+        "faceValue": "1 USDC"
+      },
+      "assessedAt": "2026-07-05T07:13:48.462Z"
+    },
+    "documentText": "{\n  \"invoiceNumber\": \"SMW-2026-28461A\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets — 2,500 units\",\n  \"amount\": \"1.20\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-02\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0x23316e56de1be6a3e22efc3d23ac045cfbd68242f9d41f5e33b5957db2f7e07b"
+  },
+  "0x068e10484130a695682e704e69eb96dad47c5e9d3c98cd7312bf756f82b9838a": {
+    "fields": {
+      "invoiceNumber": "KGF-2026-28461B",
+      "sellerName": "Kanda Godo Foods LLC (Tokyo)",
+      "payerName": "Hoshikawa Department Stores Inc.",
+      "amountBaseUnits": "800000",
+      "currency": "USDC",
+      "issueDate": "2026-06-28",
+      "termDays": 60,
+      "confidence": 0.99
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 275,
+      "rationale": "Tenor 60d and face value 0 USDC imply A-grade risk under the fallback rule set; up-front discount 2.75%.",
+      "factors": {
+        "tenorDays": "60",
+        "faceValue": "0 USDC"
+      },
+      "assessedAt": "2026-07-05T07:13:52.965Z"
+    },
+    "documentText": "{\n  \"invoiceNumber\": \"KGF-2026-28461B\",\n  \"seller\": \"Kanda Godo Foods LLC (Tokyo)\",\n  \"payer\": \"Hoshikawa Department Stores Inc.\",\n  \"description\": \"Seasonal wagashi assortment, summer catalogue\",\n  \"amount\": \"0.80\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-06-28\",\n  \"termDays\": 60,\n  \"paymentTerms\": \"NET-60 rolling settlement\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0xf4b2f3638e8e9f44959c2806f21b8d4943eef2da36188a6843594ebe72e54786"
+  },
+  "0x4c6e8cc0e3a0da871b94f55da33ca71eda037b5d08e4fcbfe3283d5c6999371e": {
+    "fields": {
+      "invoiceNumber": "NPR-2026-28461C",
+      "sellerName": "Naniwa Precision Robotics K.K. (Osaka)",
+      "payerName": "Kansai Logistics Partners Co., Ltd.",
+      "amountBaseUnits": "2000000",
+      "currency": "USDC",
+      "issueDate": "2026-07-03",
+      "termDays": 45,
+      "confidence": 0.99
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 275,
+      "rationale": "Tenor 45d and face value 2 USDC imply A-grade risk under the fallback rule set; up-front discount 2.75%.",
+      "factors": {
+        "tenorDays": "45",
+        "faceValue": "2 USDC"
+      },
+      "assessedAt": "2026-07-05T07:13:59.379Z"
+    },
+    "documentText": "{\n  \"invoiceNumber\": \"NPR-2026-28461C\",\n  \"seller\": \"Naniwa Precision Robotics K.K. (Osaka)\",\n  \"payer\": \"Kansai Logistics Partners Co., Ltd.\",\n  \"description\": \"Conveyor actuator maintenance kits — lot 7\",\n  \"amount\": \"2.00\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-03\",\n  \"termDays\": 45,\n  \"paymentTerms\": \"NET-45, replacing paper tegata workflow\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0x9f911b687f745bff8a6af6ab1d72e27647c667f89a4308d0be39b22d18111ee1"
+  },
+  "0xc28543db392e9fd6093433ddd31f91c19fdabd19b157417234cd5e677c8f1145": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-354089",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "5000000",
+      "currency": "USDC",
+      "issueDate": "2026-07-01",
+      "termDays": 30,
+      "confidence": 0.99
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 150,
+      "rationale": "Tenor 30d and face value 5 USDC imply A-grade risk under the fallback rule set; up-front discount 1.50%.",
+      "factors": {
+        "tenorDays": "30",
+        "faceValue": "5 USDC"
+      },
+      "assessedAt": "2026-07-04T16:09:14.090Z"
+    },
+    "documentText": "(demo document generated at runtime; only its keccak256 hash is anchored on-chain)",
+    "riskReportHash": "0x9ed8a1b7a5cd6d08d9c03062b601fb5ffe2d6f99b42cb25c8d3e179863e957d3"
+  }
+}

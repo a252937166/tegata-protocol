@@ -41,8 +41,31 @@ export async function settleLeg(params: {
     throw new Error(`${params.leg} leg not settled: ${settled.status} ${settled.lastDecision?.errorCode ?? ''}`);
   }
 
-  // 2) independent verification — never trust the Coordinator's own "paid" flag
-  const snapshot = await fetchPaymentSnapshot(handle.paymentId);
+  return verifyAndAnchor({
+    leg: params.leg,
+    invoiceId: params.invoiceId,
+    paymentId: handle.paymentId as `0x${string}`,
+    expectedPayee: params.payee,
+    expectedAmount: params.amount,
+    settlementTxHash: handle.txHash,
+  });
+}
+
+/**
+ * The relying-party half, shared by the server-key path (settleLeg) and the
+ * browser-wallet relay: independent verification -> attestor-signed evidence
+ * -> on-chain anchor. Works for any settled paymentId.
+ */
+export async function verifyAndAnchor(params: {
+  leg: 'funding' | 'repayment';
+  invoiceId: bigint;
+  paymentId: `0x${string}`;
+  expectedPayee: Address;
+  expectedAmount: bigint;
+  settlementTxHash?: string;
+}): Promise<SettlementLegPacket> {
+  // independent verification — never trust the Coordinator's own "paid" flag
+  const snapshot = await fetchPaymentSnapshot(params.paymentId);
   const { decision, receipt } = await verifyIndependently(snapshot);
   const accepted = Boolean((decision as { ok?: boolean }).ok) &&
     (decision as { outcomeClass?: string }).outcomeClass === 'ACCEPT';
@@ -59,10 +82,10 @@ export async function settleLeg(params: {
   };
   const payer = payloadToAddress(mandateBody.signer.payload);
   const payee = payloadToAddress(mandateBody.recipient.payload);
-  if (payee.toLowerCase() !== params.payee.toLowerCase()) throw new Error('payee mismatch');
-  if (BigInt(mandateBody.amount) !== params.amount) throw new Error('amount mismatch');
+  if (payee.toLowerCase() !== params.expectedPayee.toLowerCase()) throw new Error('payee mismatch');
+  if (BigInt(mandateBody.amount) !== params.expectedAmount) throw new Error('amount mismatch');
 
-  // 3) attestor-signed evidence + on-chain anchor
+  // attestor-signed evidence + on-chain anchor
   const evidenceHash = keccakOfJson({
     mandate: snapshot.mandate,
     receipt,
@@ -72,13 +95,13 @@ export async function settleLeg(params: {
   const evidence: SettlementEvidence = {
     invoiceId: params.invoiceId,
     leg: params.leg === 'funding' ? 0 : 1,
-    paymentId: handle.paymentId as `0x${string}`,
+    paymentId: params.paymentId,
     accepted,
     evidenceHash,
     settlementChainId: mandateBody.chainId,
     payer,
     payee,
-    amount: params.amount,
+    amount: params.expectedAmount,
     verifiedAt: BigInt(Math.floor(Date.now() / 1000)),
   };
   const signature = await signEvidence(evidence);
@@ -86,15 +109,15 @@ export async function settleLeg(params: {
 
   return {
     leg: params.leg,
-    paymentId: handle.paymentId as `0x${string}`,
+    paymentId: params.paymentId,
     settlementChain: { name: cfg.hspChainName, chainId: mandateBody.chainId },
-    settlementTxHash: handle.txHash,
+    settlementTxHash: params.settlementTxHash,
     mandate: snapshot.mandate,
     receipt,
     attestations: snapshot.attestations ?? [],
     verifierDecision: decision,
     evidenceHash,
     anchor: { chainId: cfg.anchorChainId, txHash: anchorTx, contract: cfg.contracts.SettlementAnchor },
-    hspExplorerUrl: hspExplorerUrl(handle.paymentId),
+    hspExplorerUrl: hspExplorerUrl(params.paymentId),
   };
 }

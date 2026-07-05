@@ -32,6 +32,21 @@ export function walletFor(privateKey: `0x${string}`) {
   };
 }
 
+/**
+ * Serialize all operator-wallet transactions. The attestor key signs anchors,
+ * demo attestations and treasury drips — concurrent requests would otherwise
+ * race the account nonce ("replacement transaction underpriced").
+ */
+let operatorQueue: Promise<unknown> = Promise.resolve();
+export function withOperatorLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = operatorQueue.then(fn, fn);
+  operatorQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 export enum InvoiceStatus {
   None,
   Registered,
@@ -117,40 +132,46 @@ export interface SettlementEvidence {
 }
 
 export async function anchorSettlement(ev: SettlementEvidence, signature: `0x${string}`) {
-  const { client, account } = walletFor(cfg.attestorKey);
-  const hash = await client.writeContract({
-    address: cfg.contracts.SettlementAnchor,
-    abi: SettlementAnchorAbi,
-    functionName: 'anchorSettlement',
-    args: [ev, signature],
-    account,
+  return withOperatorLock(async () => {
+    const { client, account } = walletFor(cfg.attestorKey);
+    const hash = await client.writeContract({
+      address: cfg.contracts.SettlementAnchor,
+      abi: SettlementAnchorAbi,
+      functionName: 'anchorSettlement',
+      args: [ev, signature],
+      account,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    return hash;
   });
-  await publicClient.waitForTransactionReceipt({ hash });
-  return hash;
 }
 
 export async function setPacketHash(invoiceId: bigint, packetHash: `0x${string}`) {
-  const { client, account } = walletFor(cfg.attestorKey); // registry owner == deployer == attestor wallet
-  const hash = await client.writeContract({
-    address: cfg.contracts.TegataRegistry,
-    abi: TegataRegistryAbi,
-    functionName: 'setPacketHash',
-    args: [invoiceId, packetHash],
-    account,
+  return withOperatorLock(async () => {
+    const { client, account } = walletFor(cfg.attestorKey); // registry owner == deployer == attestor wallet
+    const hash = await client.writeContract({
+      address: cfg.contracts.TegataRegistry,
+      abi: TegataRegistryAbi,
+      functionName: 'setPacketHash',
+      args: [invoiceId, packetHash],
+      account,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    return hash;
   });
-  await publicClient.waitForTransactionReceipt({ hash });
-  return hash;
 }
 
 export async function setDemoAttestation(subject: Address, approved: boolean, note: string) {
-  const { client, account } = walletFor(cfg.attestorKey);
-  const hash = await client.writeContract({
-    address: cfg.contracts.KycGate,
-    abi: KycGateAbi,
-    functionName: 'setDemoAttestation',
-    args: [subject, approved, note],
-    account,
+  return withOperatorLock(async () => {
+    const { client, account } = walletFor(cfg.attestorKey);
+    const hash = await client.writeContract({
+      address: cfg.contracts.KycGate,
+      abi: KycGateAbi,
+      functionName: 'setDemoAttestation',
+      args: [subject, approved, note],
+      account,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    return hash;
   });
-  await publicClient.waitForTransactionReceipt({ hash });
-  return hash;
 }
