@@ -98,5 +98,55 @@
     },
     "documentText": "(demo document generated at runtime; only its keccak256 hash is anchored on-chain)",
     "riskReportHash": "0x9ed8a1b7a5cd6d08d9c03062b601fb5ffe2d6f99b42cb25c8d3e179863e957d3"
+  },
+  "0x370de203f8b66447f61ad791874ef3ee2884bd934b28f88a9677cf93b058d756": {
+    "fields": {
+      "invoiceNumber": "SMW-2026-178559",
+      "sellerName": "Sakura Metal Works K.K. (Yokohama)",
+      "payerName": "Yamato Retail Holdings Co., Ltd.",
+      "amountBaseUnits": "1200000",
+      "currency": "USDC",
+      "issueDate": "2026-07-05",
+      "termDays": 30,
+      "confidence": 0.99
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 150,
+      "rationale": "Tenor 30d and face value 1 USDC imply A-grade risk under the fallback rule set; up-front discount 1.50%.",
+      "factors": {
+        "tenorDays": "30",
+        "faceValue": "1 USDC"
+      },
+      "assessedAt": "2026-07-05T12:06:18.561Z"
+    },
+    "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"SMW-2026-178559\",\n  \"seller\": \"Sakura Metal Works K.K. (Yokohama)\",\n  \"payer\": \"Yamato Retail Holdings Co., Ltd.\",\n  \"description\": \"Precision-machined shelving brackets\",\n  \"amount\": \"1.20\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-05\",\n  \"termDays\": 30,\n  \"paymentTerms\": \"NET-30, formerly settled by promissory note (yakusoku tegata)\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0x23f436b5a0f307b283d447f89e935961d23524a4ec43dba4cffd224f8786fb35"
+  },
+  "0x461d893e2f6bad318c5046b28a387bcb7e8a6f3e9cc8b6a61e5751000a9b8d3a": {
+    "fields": {
+      "invoiceNumber": "KGF-2026-183557",
+      "sellerName": "Kanda Godo Foods LLC (Tokyo)",
+      "payerName": "Hoshikawa Department Stores Inc.",
+      "amountBaseUnits": "800000",
+      "currency": "USDC",
+      "issueDate": "2026-07-05",
+      "termDays": 60,
+      "confidence": 0.99
+    },
+    "risk": {
+      "engine": "deterministic-rules",
+      "grade": "A",
+      "discountBps": 275,
+      "rationale": "Tenor 60d and face value 0 USDC imply A-grade risk under the fallback rule set; up-front discount 2.75%.",
+      "factors": {
+        "tenorDays": "60",
+        "faceValue": "0 USDC"
+      },
+      "assessedAt": "2026-07-05T12:06:23.558Z"
+    },
+    "documentText": "{\n  \"documentType\": \"invoice\",\n  \"invoiceNumber\": \"KGF-2026-183557\",\n  \"seller\": \"Kanda Godo Foods LLC (Tokyo)\",\n  \"payer\": \"Hoshikawa Department Stores Inc.\",\n  \"description\": \"Seasonal wagashi assortment\",\n  \"amount\": \"0.80\",\n  \"currency\": \"USDC\",\n  \"issueDate\": \"2026-07-05\",\n  \"termDays\": 60,\n  \"paymentTerms\": \"NET-60 rolling settlement\",\n  \"note\": \"Demo document for the TEGATA Protocol hackathon build. Not a real receivable.\"\n}",
+    "riskReportHash": "0x14cabc49e6359b406ecf356c881188ffe2c4595be2a539844e809cfc513c169a"
   }
 }

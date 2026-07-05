@@ -27,6 +27,7 @@ import { putDoc, getDoc } from './docstore.ts';
 import { preparePayment, submitPayment } from './hsp-relay.ts';
 import { verifyAndAnchor, settleLeg } from './settle.ts';
 import { buildPacketForInvoice } from './packet-service.ts';
+import { ensureOpenInvoices, startReplenishLoop } from './replenish.ts';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const PORT = Number(process.env.PORT ?? 4033);
@@ -264,6 +265,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       settlementTxHash: String(body.txHash),
     });
     const { packetHash } = await buildPacketForInvoice(invoiceId, { anchorHash: true });
+    if (leg === 'funding') void ensureOpenInvoices(); // keep the pick list stocked
     return json(res, 200, {
       paymentId: settledRes.paymentId,
       status: 'SETTLED',
@@ -379,4 +381,5 @@ createServer((req, res) => {
 }).listen(PORT, () => {
   console.log(`tegata-api listening on :${PORT}`);
   console.log(`demo SME (borrower): ${borrowerAccount.address}`);
+  startReplenishLoop();
 });
