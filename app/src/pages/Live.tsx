@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useAccount,
@@ -13,7 +13,7 @@ import { hashkeyTestnet, ERC20_ABI } from '../lib/wagmi';
 import { api, type ApiInvoice } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { Spinner, StatusBadge, ExtLink, CopyText } from '../components/ui';
-import { usdc, shortHash, tsToDate } from '../lib/format';
+import { usdc, shortAddr, shortHash, tsToDate } from '../lib/format';
 
 type FundPhase = 'idle' | 'preparing' | 'signing' | 'broadcast' | 'observing' | 'done' | 'error';
 
@@ -117,6 +117,26 @@ export default function Live() {
 
   // guards against a stale run overwriting state after the user cancels
   const runRef = useRef(0);
+
+  // Switching wallet accounts resets the flow — the page must never mix two
+  // identities. Exception: once the settlement is broadcast (funds in flight
+  // for the previous account), the run is allowed to finish so the transfer
+  // doesn't become an orphan; the evidence panel names the actual lender.
+  const prevAddress = useRef(address);
+  useEffect(() => {
+    if (prevAddress.current && address && address !== prevAddress.current) {
+      if (phase !== 'broadcast' && phase !== 'observing') {
+        runRef.current++; // orphan any pre-broadcast run (nothing on-chain yet)
+        setPhase('idle');
+        setPicked(null);
+        setResult(null);
+        setRepayResult(null);
+        setFundError('');
+      }
+    }
+    prevAddress.current = address;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
 
   async function fund() {
     if (!address || !walletClient || !picked) return;
@@ -350,6 +370,10 @@ export default function Live() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-ink3">paymentId</span>
                     <CopyText text={result.paymentId} display={shortHash(result.paymentId, 14)} />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-ink3">lender of record</span>
+                    <CopyText text={result.invoice.lender} display={shortAddr(result.invoice.lender)} />
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-ink3">status</span>
