@@ -38,10 +38,12 @@ await new Promise((r) => setTimeout(r, 4000)); // let balances land
 const kyc = await call('POST', '/api/kyc/attest', { address: judge.address });
 console.log(`[2] KYC mode: ${kyc.modeLabel}`);
 
-// 3) pick the newest open invoice
-const { invoices } = (await call('GET', '/api/invoices')) as { invoices: { id: string; status: string }[] };
-const open = invoices.find((i) => i.status === 'Registered');
-if (!open) throw new Error('no Registered invoice to fund — run seed.ts');
+// 3) pick the newest open invoice — skip soft-reserved ones, exactly like the UI does
+const { invoices } = (await call('GET', '/api/invoices')) as {
+  invoices: { id: string; status: string; reserved?: boolean }[];
+};
+const open = invoices.find((i) => i.status === 'Registered' && !i.reserved);
+if (!open) throw new Error('no unreserved Registered invoice to fund — run seed.ts');
 console.log(`[3] funding Tegata #${open.id}`);
 
 // 4) prepare -> sign typed data + broadcast settlement tx (the wallet's two ops)
