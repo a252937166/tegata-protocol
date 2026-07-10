@@ -21,7 +21,12 @@ export default function App() {
   }, [theme]);
 
   const { pathname } = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  useEffect(() => {
+    // block body on purpose: some wallet extensions wrap window.scrollTo to
+    // return a Promise; a concise arrow would hand that to React as the
+    // effect cleanup, which crashes the tree on the next route change
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <div className="min-h-screen flex flex-col">
