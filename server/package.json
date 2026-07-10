@@ -1,7 +1,7 @@
 {
   "name": "tegata-server",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "TEGATA Protocol backend: HSP settlement verification, attestor anchoring, compliance packets, AI underwriting, judge-demo API.",
   "scripts": {

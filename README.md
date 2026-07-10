@@ -36,12 +36,13 @@
 | TegataRegistry | `0xE95D2E98955238F253436DFA7A057bbB1aBC3092` | [verified source](https://hsk.blockscout.com/address/0xE95D2E98955238F253436DFA7A057bbB1aBC3092?tab=contract) |
 | SettlementAnchor | `0x4e4739b08593dDfB8C66Ad03808d11064f906042` | [verified source](https://hsk.blockscout.com/address/0x4e4739b08593dDfB8C66Ad03808d11064f906042?tab=contract) |
 
-Mainnet proof anchors (the showcase packet's hashes, anchored on mainnet as invoice #2): [sample invoice register](https://hsk.blockscout.com/tx/0x02dc26d06def5d1fcd81fc1bb58593777ca14527140bb4c385bf39a0cf3dbdf4) · [packetHash](https://hsk.blockscout.com/tx/0xfc883490bb144e90d6ce4837b09246f235b8fb447294c0f96e941fbe5d6035ec). The live demo money flow runs on testnet funds by design — judges never spend real assets.
+Mainnet proof anchors (the showcase packet's hashes, anchored on mainnet as invoice #3): [sample invoice register](https://hsk.blockscout.com/tx/0x861342da44c96392d0734f2847a7b31831b75d42facdda0bf89fb271ec0f89e1) · [packetHash](https://hsk.blockscout.com/tx/0x5f4545d00106e46641ec07f8b19d013b2b6d0de7f27be3f2cd5840cf39ca8efb). The live demo money flow runs on testnet funds by design — judges never spend real assets.
 
-**Sample packet (a real lifecycle, LLM-underwritten, repaid — Tegata #19)** — [packets/sample-compliance-packet.json](packets/sample-compliance-packet.json):
+**Sample packet (a real lifecycle, LLM-underwritten, repaid — Tegata #20)** — [packets/sample-compliance-packet.json](packets/sample-compliance-packet.json):
 
-- funding paymentId [`0xd719458f…`](https://hsp-hackathon.hashkeymerchant.com/explorer?id=0xd719458f9a7dcfaeb5f5df92a1e1770e5ead9fc31ca67b28f801256edbdcd923) · repayment paymentId [`0x9e628e6a…`](https://hsp-hackathon.hashkeymerchant.com/explorer?id=0x9e628e6ad9d126be2f1cd973e13a2c6b6e0fd2f1a7f4f9613853983c9dbc599e) (HSP Explorer decision traces)
-- on-chain anchors: [register](https://testnet-explorer.hsk.xyz/tx/0x6936bbc6dd9cb97c07bbe46c0cf98afbae1980e9f0d602d0403631474a4c705b) · [funding](https://testnet-explorer.hsk.xyz/tx/0x4f5e500fb47c17c36cb6cb075d877a5ac70811fb74d7f8285888de167befc0fa) · [repayment](https://testnet-explorer.hsk.xyz/tx/0xb2b82b790b6b507cf1a9794eb6be5e5832b6898af475215334a57a8061f99e6c)
+- funding paymentId [`0x0f4505d9…`](https://hsp-hackathon.hashkeymerchant.com/explorer?id=0x0f4505d97003d5ec428821770ec9cc0d139ecf64fefba531ab0c39051736ac2c) · repayment paymentId [`0x9062a146…`](https://hsp-hackathon.hashkeymerchant.com/explorer?id=0x9062a146e398a5cda3f15d1f7acda0f59fd00e904d5b25110d645578f0e46c76) (HSP Explorer decision traces)
+- on-chain anchors: [register](https://testnet-explorer.hsk.xyz/tx/0x620de462e2382476bebb004fbf92afa4163e02d46da049375d5968ac2c638004) · [funding](https://testnet-explorer.hsk.xyz/tx/0xd3a69d585659c52ec7824418494278991b3e0b6751b2576a6189c747626e7c2b) · [repayment](https://testnet-explorer.hsk.xyz/tx/0x1f915d3849bd36b427df095299bd48b8e8949f6b605720734915bc2320e7140c)
+- financial semantics on display: issue date 2026-07-01 + NET-30 term → due **2026-07-31** (the term runs from the invoice's issue date, not from registration time)
 
 ## Independent local verification — don't trust us
 
@@ -52,9 +53,14 @@ cd tegata-protocol/server && npm install
 npx tsx src/verify-packet.ts ../packets/sample-compliance-packet.json
 ```
 
-Runs on your machine with **zero secrets** (only the public RPC + the Coordinator's public reads). It re-runs the HSP verifier against the **pinned** adapter + compliance issuer, checks that each leg's settled **amount and parties match the invoice's registered commercial terms** (discounted advance / face-value repayment), recomputes each leg's `evidenceHash`, checks the `SettlementAnchor` records on-chain, re-derives `riskReportHash` from the embedded report, and compares `packetHash` with `TegataRegistry` — 19 checks for a full lifecycle, all from primary sources.
+Runs on your machine with **zero secrets** (only the public RPC + the Coordinator's public reads). The check list is a closed semantic loop — **34 checks for a full lifecycle**, in four layers:
 
-The same module (`server/src/verification-core.ts`) backs the CLI, `/api/verify/:id`, and every PASS mark and hanko stamp on the website — the UI renders the latest real verification report (timestamped, with the block number); no verdict is hardcoded in page source.
+1. **Structure** — strict runtime schema, leg cardinality vs lifecycle status, unique paymentIds
+2. **Trust roots** — pinned adapter, pinned compliance issuer, pinned chain + token, published contract addresses
+3. **Settlement (per leg)** — HSP verifier re-run, embedded-decision equality with a fresh run, attestations, **commercial terms** (amount + parties + token + chain vs the registered invoice), the **adapter-signed proof decoded and bound to the exact transfer** (from/to/token/amount/chain/tx), `evidenceHash`, the on-chain anchor compared **field by field**, and the `SettlementAnchored` event in the packet's anchor tx
+4. **Lifecycle** — packetHash/invoiceHash/riskReportHash vs registry, status, face/dueDate/parties, strict paymentIds (no fallbacks), and the `InvoiceRegistered`/`InvoiceFunded` events incl. **historical KYC modes read from events, not current state**
+
+The same module (`server/src/verification-core.ts`) backs the CLI, `/api/verify/:id`, and every PASS mark and hanko stamp on the website — the UI renders the latest real verification report (timestamped, with the block number), stale or errored reports downgrade to pending, and no verdict is hardcoded in page source. HSP SDK pinned to commit [`98afbb9`](https://github.com/project-hsp/hsp/commit/98afbb9a8b89b34ad55b6f97a416fab18f3128c6).
 
 ## Judge-flow rehearsal (what the live demo does, headless)
 
@@ -67,10 +73,15 @@ npx tsx src/test-judge-flow.ts https://tegata.axiqo.xyz   # against production
 A throwaway wallet claims funds, gets a demo KYC attestation, signs the EIP-712 mandate (after re-checking the typed-data digest equals the paymentId), broadcasts the settlement itself, and the pipeline settles → verifies → anchors → repays → re-verifies. `forge test` (27 tests) covers the contracts.
 
 ```bash
-npx tsx src/test-negative.ts                         # commercial-terms binding
+npx tsx src/test-negative.ts                         # commercial-terms binding (API)
+npx tsx src/test-packet-negative.ts                  # doctored packets vs the verifier
 ```
 
-Negative tests: seven tampered mandates (underpay, overpay, face-instead-of-discounted, wrong token, wrong chain, redirected payee, wrong-leg payer) are each rejected with `409` **before** any signature or Coordinator work — the server recomputes the expected amount and parties from chain state + the underwriting record and never trusts the client's numbers.
+Negative tests, both directions:
+- **8 tampered mandates** (underpay, overpay, face-instead-of-discounted, wrong token, wrong chain, redirected payee, wrong-leg payer, unprepared paymentId) are each rejected with `409` **before** any signature or Coordinator work — the server recomputes the expected amount and parties from chain state + the underwriting record, and binds every prepared paymentId to its (invoice, leg).
+- **10 doctored packets** (deleted/duplicated legs, duplicate paymentIds, smuggled leg kinds, inflated amounts, doctored decisions, rewritten chainIds, re-pointed settlement txs, swapped issuer pins, re-pointed invoices) each FAIL the specific check that guards the doctored property.
+
+Trust boundary and honest scope: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) · [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## How it works
 

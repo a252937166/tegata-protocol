@@ -1,3 +1,4 @@
+import { parseUnits, formatUnits } from 'viem';
 import { cfg } from './config.ts';
 
 /**
@@ -5,9 +6,13 @@ import { cfg } from './config.ts';
  *
  * Uses the configured autonomous underwriting model when LLM_* env vars are
  * set; otherwise falls back to a deterministic rule engine so the pipeline
- * stays reproducible offline. Every output is tagged with its engine and
- * hashed on-chain (riskReportHash) — the document itself never leaves the
- * server.
+ * stays reproducible without a model. Every output is tagged with its engine
+ * and hashed on-chain (riskReportHash).
+ *
+ * Data boundary: invoice documents never go ON-CHAIN (hashes only). In LLM
+ * mode the document text IS sent to the configured external model provider
+ * for extraction/assessment — the demo uses synthetic documents only, and
+ * the UI says so. Production hardening: private/VPC model + redaction.
  */
 
 export interface InvoiceFields {
@@ -108,10 +113,10 @@ export async function parseInvoice(documentText: string): Promise<InvoiceFields>
   // deterministic fallback: fixtures are structured JSON documents
   const doc = extractJson(documentText) as Record<string, unknown> | null;
   if (!doc) throw new Error('cannot parse invoice document');
+  // decimal strings are HUMAN units ("5.00" -> 5,000,000); bare integer
+  // strings are already base units. parseUnits is exact — no float math.
   const amount = String(doc.amount ?? '0');
-  const baseUnits = /^\d+$/.test(amount)
-    ? amount
-    : String(Math.round(parseFloat(amount) * 1e6));
+  const baseUnits = /^\d+$/.test(amount) ? amount : parseUnits(amount, 6).toString();
   return {
     invoiceNumber: String(doc.invoiceNumber ?? doc.invoice_no ?? 'INV-UNKNOWN'),
     sellerName: String(doc.seller ?? doc.sellerName ?? 'unknown'),
@@ -160,9 +165,9 @@ export async function assessRisk(fields: InvoiceFields): Promise<RiskReport> {
     }
   }
   // deterministic fallback rules
-  const amount = Number(BigInt(fields.amountBaseUnits) / 1000000n);
+  const amountHumanStr = formatUnits(BigInt(fields.amountBaseUnits), 6);
   const tenorRisk = fields.termDays <= 30 ? 0 : fields.termDays <= 60 ? 1 : 2;
-  const sizeRisk = amount <= 10_000 ? 0 : amount <= 100_000 ? 1 : 2;
+  const sizeRisk = Number(amountHumanStr) <= 10_000 ? 0 : Number(amountHumanStr) <= 100_000 ? 1 : 2;
   const score = tenorRisk + sizeRisk;
   const grade: RiskReport['grade'] = score <= 1 ? 'A' : score <= 2 ? 'B' : 'C';
   const discountBps = 150 + score * 125;
@@ -171,10 +176,10 @@ export async function assessRisk(fields: InvoiceFields): Promise<RiskReport> {
     grade,
     discountBps,
     rationale:
-      `Tenor ${fields.termDays}d and face value ${amount} ${fields.currency} imply ${grade}-grade risk ` +
+      `Tenor ${fields.termDays}d and face value ${amountHumanStr} ${fields.currency} imply ${grade}-grade risk ` +
       `under the fallback rule set; up-front discount ${(discountBps / 100).toFixed(2)}% of face for the whole tenor. ` +
       'Assessment uses document-level signals only — no external credit data.',
-    factors: { tenorDays: String(fields.termDays), faceValue: `${amount} ${fields.currency}` },
+    factors: { tenorDays: String(fields.termDays), faceValue: `${amountHumanStr} ${fields.currency}` },
     assessedAt: new Date().toISOString(),
   };
 }
@@ -182,3 +187,30 @@ export async function assessRisk(fields: InvoiceFields): Promise<RiskReport> {
 // deal math lives with the packet definition (zero-secret import graph);
 // re-exported here for callers that think of it as underwriting output
 export { discountedAmount } from './packet.ts';
+
+/** Reject nonsensical extractions before anything touches the chain. */
+export function validateInvoiceFields(fields: InvoiceFields): string | null {
+  if (!/^[0-9]+$/.test(fields.amountBaseUnits) || BigInt(fields.amountBaseUnits) <= 0n) {
+    return 'amountBaseUnits must be a positive integer string';
+  }
+  if (BigInt(fields.amountBaseUnits) > 10_000_000_000_000n) {
+    return 'amount exceeds the demo ceiling (10M USDC)';
+  }
+  if (!Number.isInteger(fields.termDays) || fields.termDays < 1 || fields.termDays > 365) {
+    return 'termDays must be an integer between 1 and 365';
+  }
+  if (fields.currency !== 'USDC') {
+    return 'this demo settles USDC-denominated invoices only (JPY invoices need an FX-attested flow — see KNOWN_LIMITATIONS)';
+  }
+  return null;
+}
+
+/**
+ * Financial semantics: the payment term runs from the invoice's ISSUE date,
+ * not from whenever someone happened to click register.
+ */
+export function dueDateFrom(fields: InvoiceFields): bigint {
+  const issueTs = Math.floor(Date.parse(`${fields.issueDate}T00:00:00Z`) / 1000);
+  const base = Number.isFinite(issueTs) ? issueTs : Math.floor(Date.now() / 1000);
+  return BigInt(base + fields.termDays * 86_400);
+}

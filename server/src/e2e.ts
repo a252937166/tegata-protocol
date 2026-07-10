@@ -14,7 +14,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { cfg, repoRoot, anchorTxUrl, hspExplorerUrl } from './config.ts';
 import { keccakOfBytes, keccakOfJson } from './canonical.ts';
 import { putDoc } from './docstore.ts';
-import { parseInvoice, assessRisk, discountedAmount } from './ai.ts';
+import { parseInvoice, assessRisk, discountedAmount, dueDateFrom } from './ai.ts';
 import {
   registerInvoice,
   getInvoice,
@@ -54,7 +54,7 @@ console.log(`[2] KYC: borrower=${bKyc.modeLabel}, lender=${lKyc.modeLabel}`);
 
 // 3) register the receivable
 const face = BigInt(fields.amountBaseUnits);
-const dueDate = BigInt(Math.floor(Date.now() / 1000) + fields.termDays * 86_400);
+const dueDate = dueDateFrom(fields); // term runs from the invoice's issue date
 const reg = await registerInvoice(cfg.borrowerKey, { invoiceHash, faceAmount: face, dueDate, riskReportHash });
 console.log(`[3] registered Tegata #${reg.id}  tx ${anchorTxUrl(reg.txHash)}`);
 

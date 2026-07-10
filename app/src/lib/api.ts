@@ -28,6 +28,23 @@ export interface VerificationReport {
   verifiedAt: string;
   chainId: number;
   blockNumber: string;
+  /** cache metadata from the API: a stale or errored report must never be shown as a live PASS */
+  stale?: boolean;
+  error?: string | null;
+}
+
+/** A report the UI may present as CURRENT. Stale/errored reports render as pending, never as PASS. */
+export function liveReport(r: VerificationReport | null | undefined): VerificationReport | null {
+  return r && !r.stale && !r.error ? r : null;
+}
+
+export interface Readiness {
+  ok: boolean;
+  components: {
+    chain: { ok: boolean; block?: string; error?: string };
+    coordinator: { ok: boolean; status?: number; error?: string };
+    showcaseVerification: { ok: boolean; verifiedAt?: string; stale?: boolean; error?: string };
+  };
 }
 export interface RiskReport {
   engine: string;
@@ -108,6 +125,11 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
 
 export const api = {
   config: () => req<AppConfig>('GET', '/api/config'),
+  readiness: async (): Promise<Readiness> => {
+    // /api/readiness returns 503 when degraded — that is still a payload, not an exception
+    const res = await fetch('/api/readiness');
+    return (await res.json()) as Readiness;
+  },
   invoices: () => req<{ invoices: ApiInvoice[] }>('GET', '/api/invoices'),
   invoice: (id: string) => req<{ invoice: ApiInvoice }>('GET', `/api/invoices/${id}`),
   kycCheck: (address: string) =>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, liveReport } from '../lib/api';
 import { useLang, type TKey } from '../lib/i18n';
 import { HankoStamp, StatusBadge } from '../components/ui';
 import { usdc, shortAddr } from '../lib/format';
@@ -32,8 +32,10 @@ function VerifiedDealCard() {
   const inv = data.invoice;
   const f = p.invoice.parsedFields;
   const r = p.invoice.riskReport;
-  const report = data.verification;
+  // stale or errored reports render as pending — never as a live PASS
+  const report = liveReport(data.verification);
   const chk = (id: string) => report?.checks.find((c) => c.id === id)?.pass;
+  const agoMin = report ? Math.max(0, Math.round((Date.now() - Date.parse(report.verifiedAt)) / 60_000)) : 0;
   return (
     <div className="card p-6 relative overflow-visible">
       {report?.allPass && (
@@ -101,8 +103,11 @@ function VerifiedDealCard() {
       </div>
       {report && (
         <div className="text-[0.65rem] text-ink3 mt-2.5 tabular-nums">
-          {t('hero.deal.verifiedAt')} · {report.passed}/{report.total} · block {report.blockNumber}
+          {t('hero.deal.verifiedAt')} · {agoMin} min · {report.passed}/{report.total} · block {report.blockNumber}
         </div>
+      )}
+      {data.verification && !report && (
+        <div className="text-[0.65rem] text-ink3 mt-2.5">{t('verify.stale')}</div>
       )}
 
       <Link to="/showcase" className="btn w-full mt-5 !border-(--accent) text-accent">
@@ -137,8 +142,9 @@ export default function Landing() {
   ];
 
   // metrics are derived, never asserted: contract count from live config,
-  // leg/check counts from the latest real verification-core run
-  const report = showcase?.verification ?? null;
+  // leg/check counts from the latest real verification-core run (stale or
+  // errored reports downgrade to pending — never a live PASS)
+  const report = liveReport(showcase?.verification);
   const legsTotal = showcase?.packet.hspSettlement.legs.length ?? 0;
   const legsAccept = report
     ? report.checks.filter((c) => c.id.endsWith('-verifier') && c.pass).length

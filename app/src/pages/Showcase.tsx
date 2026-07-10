@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { api, type VerificationCheck } from '../lib/api';
+import { api, liveReport, type VerificationCheck } from '../lib/api';
 import { useLang, type TKey } from '../lib/i18n';
 import { ExtLink, CopyText, CheckRow, Spinner, OfflineVerifyHint, HankoStamp } from '../components/ui';
 import { usdc, shortAddr, shortHash } from '../lib/format';
@@ -115,8 +115,10 @@ export default function Showcase() {
   const funding = packet.hspSettlement.legs.find((l) => l.leg === 'funding');
   const repayment = packet.hspSettlement.legs.find((l) => l.leg === 'repayment');
   const explorer = 'https://testnet-explorer.hsk.xyz';
-  const report = data.verification;
+  // stale or errored reports render as pending — never as a live PASS
+  const report = liveReport(data.verification);
   const chk = (id: string) => report?.checks.find((c) => c.id === id)?.pass;
+  const agoMin = report ? Math.max(0, Math.round((Date.now() - Date.parse(report.verifiedAt)) / 60_000)) : 0;
 
   // each step is derived from chain-backed state, not asserted
   const timeline: [string, boolean][] = [
@@ -169,9 +171,13 @@ export default function Showcase() {
         </div>
         {report && (
           <p className="text-[0.68rem] text-ink3 mt-3 tabular-nums border-t border-line pt-2.5">
-            {t('showcase.verifiedAt')} {new Date(report.verifiedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC
-            · block {report.blockNumber} · {report.passed}/{report.total}
+            {t('showcase.verifiedAt')} {agoMin} min ago ·{' '}
+            {new Date(report.verifiedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC · block{' '}
+            {report.blockNumber} · {report.passed}/{report.total}
           </p>
+        )}
+        {data.verification && !report && (
+          <p className="text-[0.68rem] text-ink3 mt-3 border-t border-line pt-2.5">{t('verify.stale')}</p>
         )}
       </div>
 

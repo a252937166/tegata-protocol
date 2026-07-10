@@ -5,7 +5,7 @@
  */
 import { cfg } from './config.ts';
 import { keccakOfBytes, keccakOfJson } from './canonical.ts';
-import { parseInvoice, assessRisk } from './ai.ts';
+import { parseInvoice, assessRisk, dueDateFrom } from './ai.ts';
 import { registerInvoice, getInvoice, nextInvoiceId, STATUS_LABELS } from './contracts.ts';
 import { putDoc, getDoc } from './docstore.ts';
 
@@ -86,7 +86,7 @@ async function issueOne(): Promise<void> {
   const risk = await assessRisk(fields);
   const riskReportHash = keccakOfJson(risk);
   putDoc(invoiceHash, { fields, risk, documentText: text, riskReportHash });
-  const dueDate = BigInt(Math.floor(Date.now() / 1000) + fields.termDays * 86_400);
+  const dueDate = dueDateFrom(fields); // term runs from the invoice's issue date
   const reg = await registerInvoice(cfg.borrowerKey, {
     invoiceHash,
     faceAmount: BigInt(fields.amountBaseUnits),

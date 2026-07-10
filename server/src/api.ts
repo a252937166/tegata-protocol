@@ -22,7 +22,7 @@ import {
   STATUS_LABELS,
   type Invoice,
 } from './contracts.ts';
-import { parseInvoice, assessRisk, discountedAmount } from './ai.ts';
+import { parseInvoice, assessRisk, discountedAmount, validateInvoiceFields, dueDateFrom } from './ai.ts';
 import { keccakOfBytes, keccakOfJson } from './canonical.ts';
 import { putDoc, getDoc } from './docstore.ts';
 import { preparePayment, submitPayment } from './hsp-relay.ts';
@@ -62,19 +62,39 @@ function json(res: ServerResponse, status: number, body: unknown) {
 
 // ------------------------------------------------- showcase verification cache
 // The web app's PASS marks all come from this: a real, periodically re-run
-// execution of the shared verification core over the sample packet.
-let showcaseVerification: VerificationReport | null = null;
+// execution of the shared verification core over the sample packet. The cache
+// tracks failure and age explicitly — a stale or errored cache must NEVER be
+// presented as a live PASS, so the report is stamped with stale/error and the
+// UI downgrades accordingly.
+const SHOWCASE_STALE_MS = 25 * 60_000; // refresh runs every 15 min
+const showcaseCache = {
+  report: null as VerificationReport | null,
+  lastAttemptAt: null as string | null,
+  lastSuccessAt: null as string | null,
+  error: null as string | null,
+};
+function showcaseVerification(): VerificationReport | null {
+  const r = showcaseCache.report;
+  if (!r) return null;
+  const stale =
+    !showcaseCache.lastSuccessAt || Date.now() - Date.parse(showcaseCache.lastSuccessAt) > SHOWCASE_STALE_MS;
+  return { ...r, stale, error: showcaseCache.error };
+}
 async function refreshShowcaseVerification() {
+  showcaseCache.lastAttemptAt = new Date().toISOString();
   try {
     const sample = JSON.parse(
       readFileSync(resolve(repoRoot, 'packets', 'sample-compliance-packet.json'), 'utf8'),
     );
-    showcaseVerification = await verifyPacket(sample);
+    showcaseCache.report = await verifyPacket(sample);
+    showcaseCache.lastSuccessAt = new Date().toISOString();
+    showcaseCache.error = null;
     console.log(
-      `[verify] showcase #${showcaseVerification.invoiceId}: ${showcaseVerification.passed}/${showcaseVerification.total} at block ${showcaseVerification.blockNumber}`,
+      `[verify] showcase #${showcaseCache.report.invoiceId}: ${showcaseCache.report.passed}/${showcaseCache.report.total} at block ${showcaseCache.report.blockNumber}`,
     );
   } catch (e) {
-    console.error('[verify] showcase verification failed:', (e as Error).message);
+    showcaseCache.error = (e as Error).message;
+    console.error('[verify] showcase verification failed:', showcaseCache.error);
   }
 }
 
@@ -98,6 +118,18 @@ const reservations = new Map<string, { payer: string; until: number }>();
 function activeReservation(invoiceId: string) {
   const r = reservations.get(invoiceId);
   return r && r.until > Date.now() ? r : undefined;
+}
+
+// Every prepared paymentId is bound to (invoice, leg) server-side, so a
+// mandate settled for invoice A can never be submitted to advance invoice B —
+// even if both invoices happen to quote identical amounts and parties.
+const PENDING_PAYMENT_MS = 60 * 60_000;
+const pendingPayments = new Map<string, { invoiceId: string; leg: string; until: number }>();
+function rememberPayment(paymentId: string, invoiceId: string, leg: string) {
+  pendingPayments.set(paymentId.toLowerCase(), { invoiceId, leg, until: Date.now() + PENDING_PAYMENT_MS });
+  if (pendingPayments.size > 5000) {
+    for (const [k, v] of pendingPayments) if (v.until < Date.now()) pendingPayments.delete(k);
+  }
 }
 
 // global faucet budget: treasury drips are capped per UTC day regardless of
@@ -218,9 +250,6 @@ async function route(req: IncomingMessage, res: ServerResponse) {
 
   if (path === '/api/faucet' && method === 'POST') {
     if (limited(req, 'faucet', 10)) return json(res, 429, { error: 'rate-limited' });
-    if (!faucetBudgetOk()) {
-      return json(res, 429, { error: 'faucet-daily-budget-exhausted', detail: 'use the public HSP sandbox faucet directly' });
-    }
     const { address } = await readBody(req);
     const to = getAddress(String(address));
     // primary: relay to the HSP sandbox faucet
@@ -236,7 +265,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     } catch {
       /* fall through to treasury */
     }
-    // fallback: tiny drip from the demo treasury (testnet funds only)
+    // fallback: tiny drip from the demo treasury (testnet funds only).
+    // The daily budget only meters TREASURY spend — sandbox-served requests
+    // above never consume it.
+    if (!faucetBudgetOk()) {
+      return json(res, 429, { error: 'faucet-daily-budget-exhausted', detail: 'use the public HSP sandbox faucet directly' });
+    }
     const drip = await withOperatorLock(async () => {
       const { client, account } = walletFor(cfg.attestorKey);
       const gasTx = await client.sendTransaction({ account, to, value: parseEther('0.005') });
@@ -273,12 +307,25 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const { documentText } = await readBody(req);
     const text = String(documentText ?? '');
     if (!text || text.length > 20_000) return json(res, 400, { error: 'documentText required (max 20k chars)' });
-    const fields = await parseInvoice(text);
-    const risk = await assessRisk(fields);
     const invoiceHash = keccakOfBytes(Buffer.from(text));
+    // quote binding: if this exact document was already underwritten (the
+    // preview step keys the doc store by invoiceHash), register THAT quote —
+    // the model is never re-run between what the user saw and what goes
+    // on-chain, so preview grade/discount === registered grade/discount
+    const existing = getDoc(invoiceHash);
+    const fields = existing?.fields ?? (await parseInvoice(text));
+    const risk = existing?.risk ?? (await assessRisk(fields));
+    const invalid = validateInvoiceFields(fields);
+    if (invalid) return json(res, 400, { error: invalid });
     const riskReportHash = keccakOfJson(risk);
-    putDoc(invoiceHash, { fields, risk, documentText: text, riskReportHash });
-    const dueDate = BigInt(Math.floor(Date.now() / 1000) + Math.max(1, fields.termDays) * 86_400);
+    if (!existing) putDoc(invoiceHash, { fields, risk, documentText: text, riskReportHash });
+    // the payment term runs from the invoice's issue date, not from now
+    const dueDate = dueDateFrom(fields);
+    if (dueDate <= BigInt(Math.floor(Date.now() / 1000) + 3600)) {
+      return json(res, 400, {
+        error: 'dueDate (issueDate + termDays) is in the past — use a recent issueDate or longer term',
+      });
+    }
     try {
       const reg = await registerInvoice(cfg.borrowerKey, {
         invoiceHash,
@@ -308,11 +355,15 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const { documentText } = await readBody(req);
     const text = String(documentText ?? '');
     if (!text || text.length > 20_000) return json(res, 400, { error: 'documentText required (max 20k chars)' });
-    const fields = await parseInvoice(text);
-    const risk = await assessRisk(fields);
     const invoiceHash = keccakOfBytes(Buffer.from(text));
+    // idempotent per document: the stored quote IS what /api/issue registers
+    const existing = getDoc(invoiceHash);
+    const fields = existing?.fields ?? (await parseInvoice(text));
+    const risk = existing?.risk ?? (await assessRisk(fields));
+    const invalid = validateInvoiceFields(fields);
+    if (invalid) return json(res, 400, { error: invalid });
     const riskReportHash = keccakOfJson(risk);
-    putDoc(invoiceHash, { fields, risk, documentText: text, riskReportHash });
+    if (!existing) putDoc(invoiceHash, { fields, risk, documentText: text, riskReportHash });
     return json(res, 200, { fields, risk, invoiceHash, riskReportHash });
   }
 
@@ -365,6 +416,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       return json(res, 412, { error: 'insufficient-gas', detail: 'not enough HSK for the settlement transaction — use the faucet step first' });
     }
     const prepared = preparePayment({ payer, to, amount });
+    rememberPayment(prepared.paymentId, invoiceId.toString(), leg);
     return json(res, 200, { ...prepared, leg, invoiceId: invoiceId.toString(), to, amount: amount.toString() });
   }
 
@@ -420,6 +472,16 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       if (r && r.payer.toLowerCase() !== mandatePayer) {
         return json(res, 409, { error: 'payer-does-not-match-reservation' });
       }
+    }
+    // origin binding: the paymentId must be one WE prepared for THIS
+    // invoice and leg — a mandate settled for invoice A can never advance
+    // invoice B, even with identical amounts and parties
+    const pending = pendingPayments.get(String(body.paymentId ?? '').toLowerCase());
+    if (!pending || pending.invoiceId !== invoiceId.toString() || pending.leg !== leg || pending.until < Date.now()) {
+      return json(res, 409, {
+        error: 'unknown-payment',
+        detail: 'paymentId was not prepared for this invoice/leg (or expired) — restart from prepare',
+      });
     }
     // -------------------------------------------------------------------
 
@@ -510,8 +572,9 @@ async function route(req: IncomingMessage, res: ServerResponse) {
         packet: sample,
         invoice: await enrich(id, await getInvoice(id)),
         // last real run of the shared verification core over this packet —
-        // the UI renders THIS report; it never asserts PASS on its own
-        verification: showcaseVerification,
+        // the UI renders THIS report (incl. stale/error state); it never
+        // asserts PASS on its own
+        verification: showcaseVerification(),
         links: {
           hspExplorerFunding: sample.hspSettlement.legs[0]?.hspExplorerUrl ?? '',
           hspExplorerRepayment: sample.hspSettlement.legs[1]?.hspExplorerUrl ?? '',
@@ -537,9 +600,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     } catch (e) {
       out.coordinator = { ok: false, error: (e as Error).message };
     }
-    out.showcaseVerification = showcaseVerification
-      ? { ok: showcaseVerification.allPass, verifiedAt: showcaseVerification.verifiedAt }
-      : { ok: false, error: 'not yet computed' };
+    const sv = showcaseVerification();
+    out.showcaseVerification = sv
+      ? { ok: sv.allPass && !sv.stale && !sv.error, verifiedAt: sv.verifiedAt, stale: sv.stale }
+      : { ok: false, error: showcaseCache.error ?? 'not yet computed' };
     const ok = [out.chain, out.coordinator, out.showcaseVerification].every(
       (c) => (c as { ok: boolean }).ok,
     );

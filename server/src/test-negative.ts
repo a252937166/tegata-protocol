@@ -87,6 +87,14 @@ const cases: Case[] = [
     },
     expectError: '', // any 4xx rejection is a pass (payee/payer both wrong pre-funding)
   },
+  {
+    name: 'correct terms but paymentId never prepared for this invoice',
+    mutate: () => {
+      /* mandate untouched — passes every commercial check, must still die
+         on origin binding because /api/hsp/prepare never issued this id */
+    },
+    expectError: 'unknown-payment',
+  },
 ];
 
 let failures = 0;

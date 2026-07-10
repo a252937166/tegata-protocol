@@ -1,32 +1,15 @@
-# React + TypeScript + Vite
+# TEGATA web app
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + Vite + wagmi/viem + Tailwind v4, English/日本語, light/dark.
 
-Currently, two official plugins are available:
+Every PASS mark, hanko stamp and metric on the site renders the latest real
+run of the shared verification core served by the API (`/api/showcase` →
+`verification`); nothing is asserted in page source, and stale or errored
+reports downgrade to pending. See the repository root README for the judge
+paths and `docs/ARCHITECTURE.md` for how the pieces fit.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev     # :5173, proxies /api to :4033 (run the server first)
+npm run build   # stamps the current git SHA into the footer
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.

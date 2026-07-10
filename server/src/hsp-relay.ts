@@ -13,15 +13,14 @@
  * The judge's wallet is the mandate signer AND the settling account —
  * exactly HSP's wallet-settling trust model.
  */
+import { randomBytes } from 'node:crypto';
 import {
   encodeAbiParameters,
   decodeAbiParameters,
   encodeFunctionData,
   getAddress,
   hashTypedData,
-  keccak256,
   recoverAddress,
-  toHex,
   type Address,
   type Hex,
 } from 'viem';
@@ -68,7 +67,9 @@ export function preparePayment(p: { payer: Address; to: Address; amount: bigint 
   const to = getAddress(p.to);
   const deadline = Math.floor(Date.now() / 1000) + 3600;
   const body = {
-    nonce: toHex(keccak256(toHex(`${payer}:${to}:${p.amount}:${deadline}`))).slice(0, 66) as Hex,
+    // cryptographically random replay-protection nonce — two identical
+    // payments prepared in the same second must still be distinct mandates
+    nonce: (`0x${randomBytes(32).toString('hex')}`) as Hex,
     signer: {
       profileId: eip712EoaSigner.profileIdHash,
       payload: encodeAbiParameters([{ type: 'address' }], [payer]),

@@ -6,7 +6,7 @@ import { getInvoice, publicClient } from './contracts.ts';
 import { fetchPaymentSnapshot, verifyIndependently } from './hsp.ts';
 import { keccakOfJson } from './canonical.ts';
 import { getDoc } from './docstore.ts';
-import { checkKyc, setPacketHash } from './contracts.ts';
+import { setPacketHash } from './contracts.ts';
 import { buildPacket, type SettlementLegPacket, type CompliancePacket } from './packet.ts';
 
 const ANCHORED_EVENT = parseAbiItem(
@@ -15,6 +15,10 @@ const ANCHORED_EVENT = parseAbiItem(
 const REGISTERED_EVENT = parseAbiItem(
   'event InvoiceRegistered(uint256 indexed id, address indexed borrower, bytes32 invoiceHash, uint256 faceAmount, uint64 dueDate, bytes32 riskReportHash, uint8 kycMode)',
 );
+const FUNDED_EVENT = parseAbiItem(
+  'event InvoiceFunded(uint256 indexed id, address indexed lender, uint256 discountedAmount, bytes32 paymentId, uint8 lenderKycMode)',
+);
+const KYC_MODE_LABELS = ['none', 'official-sbt', 'demo-attestor'] as const;
 
 async function findAnchorTx(paymentId: `0x${string}`): Promise<string> {
   const logs = await publicClient.getLogs({
@@ -85,21 +89,34 @@ export async function buildPacketForInvoice(
   if (invoice.fundingPaymentId !== ZERO32) legs.push(await legFromChain('funding', invoice.fundingPaymentId));
   if (invoice.repaymentPaymentId !== ZERO32) legs.push(await legFromChain('repayment', invoice.repaymentPaymentId));
 
-  const [bKyc, lKyc] = await Promise.all([
-    checkKyc(invoice.borrower),
-    invoice.lender !== '0x0000000000000000000000000000000000000000'
-      ? checkKyc(invoice.lender)
-      : Promise.resolve({ modeLabel: 'none' }),
+  // KYC modes are HISTORICAL facts — read them from the events emitted at
+  // registration/funding time, never from current gate state (an attestation
+  // revoked or upgraded later must not change a rebuilt packet's hash)
+  const [regLogs, fundLogs] = await Promise.all([
+    publicClient.getLogs({
+      address: cfg.contracts.TegataRegistry,
+      event: REGISTERED_EVENT,
+      args: { id: invoiceId },
+      fromBlock: cfg.deployBlock,
+    }),
+    publicClient.getLogs({
+      address: cfg.contracts.TegataRegistry,
+      event: FUNDED_EVENT,
+      args: { id: invoiceId },
+      fromBlock: cfg.deployBlock,
+    }),
   ]);
+  const borrowerKycMode = KYC_MODE_LABELS[regLogs[0]?.args.kycMode ?? 0];
+  const lenderKycMode = KYC_MODE_LABELS[fundLogs[0]?.args.lenderKycMode ?? 0];
 
   const { packet, packetHash } = buildPacket({
     invoiceId,
     invoice,
     fields: doc.fields,
     risk: doc.risk,
-    borrowerKycMode: bKyc.modeLabel!,
-    lenderKycMode: lKyc.modeLabel!,
-    registerTxHash: await findRegisterTx(invoiceId),
+    borrowerKycMode,
+    lenderKycMode,
+    registerTxHash: regLogs[0]?.transactionHash ?? (await findRegisterTx(invoiceId)),
     legs,
   });
 

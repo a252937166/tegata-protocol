@@ -24,7 +24,7 @@ const dict = {
     'hero.deal.title': 'VERIFIED TEGATA',
     'hero.deal.invoice': 'Invoice',
     'hero.deal.face': 'Face',
-    'hero.deal.grade': 'AI grade',
+    'hero.deal.grade': 'Preliminary grade',
     'hero.deal.discount': 'Discount',
     'hero.deal.lender': 'Lender',
     'hero.deal.sme': 'SME',
@@ -35,11 +35,13 @@ const dict = {
     'hero.deal.verifiedAt': 'Re-verified server-side',
     'hero.deal.open': 'Open full deal dossier',
 
-    'metrics.contracts': 'Verified contracts · both networks',
+    'metrics.contracts': 'Deployed contracts · both networks',
     'metrics.legs': 'HSP settlement legs ACCEPT',
     'metrics.checks': 'Independent checks PASS',
     'metrics.custody': 'User funds held by TEGATA',
-    'metrics.caption': 'Counts from the latest real verification-core run, not page copy — re-verified',
+    'metrics.caption':
+      'Settlement and check counts come from the latest real verification-core run; deployment counts from public config; custody is architectural (P2P wallet settlement, no pool) — re-verified',
+    'verify.stale': 'Last verification is stale or failed — all marks downgraded until the next successful run.',
 
     'diff.label': 'What makes it different',
     'diff.title': 'Three properties this build proves',
@@ -81,7 +83,7 @@ const dict = {
     'how.1.t': 'Register',
     'how.1.b': 'A KYC-gated SME registers a receivable. AI extracts the fields and grades the risk; only hashes go on-chain.',
     'how.2.t': 'Discount',
-    'how.2.b': 'A KYC-gated lender funds the invoice peer-to-peer with an HSP compliant payment — KYC + sanctions attestations signed into the mandate.',
+    'how.2.b': 'A KYC-gated lender funds the invoice peer-to-peer with an HSP compliant payment — the mandate REQUIRES kyc + sanctions capabilities; pinned issuer attestations satisfy them.',
     'how.3.t': 'Verify',
     'how.3.b': 'The settlement is re-verified independently against a pinned trust config. “Verify the settlement, not the promise.”',
     'how.4.t': 'Anchor',
@@ -90,7 +92,7 @@ const dict = {
     'how.5.b': 'One click exports the compliance packet — mandate, receipt, attestations, decisions, chain anchors. Independently re-verifiable by anyone, on their own machine.',
 
     'trust.label': 'Trust model',
-    'trust.title': 'Nothing here asks for your trust',
+    'trust.title': 'What you can verify — and what remains trusted',
     'trust.b1.t': 'Zero custody',
     'trust.b1.b': 'The lender’s own wallet settles. No pool holds funds; the protocol never touches money.',
     'trust.b2.t': 'Pinned verification',
@@ -126,7 +128,7 @@ const dict = {
     'showcase.verifying': 'Re-running verification…',
     'showcase.download': 'Download packet JSON',
     'showcase.explorer': 'Decision trace in HSP Explorer',
-    'showcase.grade': 'Grade',
+    'showcase.grade': 'Preliminary grade',
     'showcase.discount': 'Discount',
     'showcase.engine': 'Engine',
     'showcase.checksTitle': 'Independent checks — recomputed just now',
@@ -164,6 +166,10 @@ const dict = {
     'live.fund.hint':
       'No wallet prompt? Click your wallet extension icon in the browser toolbar — the request may be queued there. Reject any stale requests from earlier attempts first.',
     'live.fund.cancel': 'Cancel',
+    'live.fund.short': 'This leg settles',
+    'live.ready.label': 'DEMO READINESS',
+    'live.ready.verifier': 'Showcase verifier',
+    'live.ready.degraded': 'Live settlement may be degraded right now — the pre-verified deal is unaffected:',
     'live.done.title': 'ACCEPT — verified and anchored',
     'live.done.b': 'You are now the lender of record. The demo SME’s agent can repay at maturity — or trigger it now:',
     'live.done.repay': 'Trigger repayment (SME agent)',
@@ -173,7 +179,7 @@ const dict = {
 
     'issue.title': 'Borrower demo: issue a Tegata',
     'issue.sub':
-      'The other side of the market — watch the AI underwriter work. Edit the invoice document, run underwriting, then register it on-chain as an open receivable (issued by the demo SME).',
+      'The other side of the market — watch the AI underwriter work. Edit the invoice document, run underwriting, then register it on-chain as an open receivable (issued by the demo SME). The quote you preview IS the quote that registers — the model is never re-run in between. Synthetic documents only: text may be processed by the configured external model; nothing but hashes goes on-chain.',
     'issue.run': 'Run AI underwriting',
     'issue.running': 'Underwriting…',
     'issue.register': 'Register on HashKey Testnet',
@@ -315,7 +321,7 @@ const dict = {
     'hero.deal.title': '検証済み TEGATA',
     'hero.deal.invoice': '請求書',
     'hero.deal.face': '額面',
-    'hero.deal.grade': 'AI格付け',
+    'hero.deal.grade': '暫定格付け',
     'hero.deal.discount': '割引率',
     'hero.deal.lender': '貸し手',
     'hero.deal.sme': 'SME',
@@ -326,11 +332,13 @@ const dict = {
     'hero.deal.verifiedAt': 'サーバー側で再検証済み',
     'hero.deal.open': 'ディール全文を開く',
 
-    'metrics.contracts': '検証済みコントラクト · 両ネットワーク',
+    'metrics.contracts': 'デプロイ済みコントラクト · 両ネットワーク',
     'metrics.legs': 'HSP決済レッグ ACCEPT',
     'metrics.checks': '独立チェック PASS',
     'metrics.custody': 'TEGATAが保管するユーザー資金',
-    'metrics.caption': '数値はページ文言ではなく、検証コアの直近の実実行結果 — 再検証',
+    'metrics.caption':
+      '決済・チェックの数値は検証コアの直近の実実行結果、デプロイ数は公開設定、カストディはアーキテクチャ特性(P2Pウォレット決済・プール無し)— 再検証',
+    'verify.stale': '直近の検証が古いか失敗しています — 次の成功まで全マークを保留表示に格下げ中。',
 
     'diff.label': '何が違うのか',
     'diff.title': 'このビルドが証明する3つの性質',
@@ -372,7 +380,7 @@ const dict = {
     'how.1.t': '登録',
     'how.1.b': 'KYC済みの中小企業が売掛債権を登録。AIが項目を抽出しリスクを格付け。チェーンにはハッシュのみ。',
     'how.2.t': '割引',
-    'how.2.b': 'KYC済みの貸し手がHSPコンプライアンス決済でP2P資金提供。KYC・制裁審査のアテステーションがマンデートに組み込まれます。',
+    'how.2.b': 'KYC済みの貸し手がHSPコンプライアンス決済でP2P資金提供。マンデートがKYC+制裁ケイパビリティを必須とし、ピン留め発行者のアテステーションがそれを充足します。',
     'how.3.t': '検証',
     'how.3.b': '決済はピン留めされたトラスト設定に対して独立に再検証。「約束ではなく、決済を検証せよ」。',
     'how.4.t': 'アンカー',
@@ -381,7 +389,7 @@ const dict = {
     'how.5.b': 'ワンクリックでコンプライアンスパケットを出力。マンデート、レシート、アテステーション、判定、チェーンアンカー。誰でも自分のマシンで独立に再検証可能。',
 
     'trust.label': 'トラストモデル',
-    'trust.title': '信頼を前提としない設計',
+    'trust.title': '自分で検証できるもの — そして依然信頼するもの',
     'trust.b1.t': 'ゼロカストディ',
     'trust.b1.b': '貸し手自身のウォレットが決済。プールは資金を保持せず、プロトコルは資金に触れません。',
     'trust.b2.t': 'ピン留め検証',
@@ -417,7 +425,7 @@ const dict = {
     'showcase.verifying': '再検証を実行中…',
     'showcase.download': 'パケットJSONをダウンロード',
     'showcase.explorer': 'HSPエクスプローラーで判定トレースを見る',
-    'showcase.grade': '格付け',
+    'showcase.grade': '暫定格付け',
     'showcase.discount': '割引率',
     'showcase.engine': 'エンジン',
     'showcase.checksTitle': '独立チェック — たった今再計算',
@@ -455,6 +463,10 @@ const dict = {
     'live.fund.hint':
       'ウォレットの確認画面が出ない場合は、ブラウザ右上のウォレット拡張アイコンをクリックしてください。リクエストが待機列に入っている場合があります。以前の古いリクエストは先に拒否してください。',
     'live.fund.cancel': 'キャンセル',
+    'live.fund.short': 'このレッグの決済額',
+    'live.ready.label': 'デモ稼働状況',
+    'live.ready.verifier': 'ショーケース検証器',
+    'live.ready.degraded': 'ライブ決済が一時的に不安定な可能性があります — 事前検証済みディールは影響を受けません:',
     'live.done.title': 'ACCEPT — 検証・アンカー完了',
     'live.done.b': 'あなたが正式な貸し手になりました。デモSMEのエージェントが償還を実行できます:',
     'live.done.repay': '償還を実行(SMEエージェント)',
@@ -464,7 +476,7 @@ const dict = {
 
     'issue.title': '借り手デモ:手形を発行する',
     'issue.sub':
-      '市場の反対側 — AI与信エンジンの動きをご覧ください。請求書ドキュメントを編集し、与信を実行し、デモSME発行の債権としてオンチェーン登録します。',
+      '市場の反対側 — AI与信エンジンの動きをご覧ください。請求書ドキュメントを編集し、与信を実行し、デモSME発行の債権としてオンチェーン登録します。プレビューした見積りがそのまま登録されます(間でモデルを再実行しません)。合成ドキュメント限定:テキストは設定された外部モデルで処理される場合があります。チェーンに載るのはハッシュのみです。',
     'issue.run': 'AI与信を実行',
     'issue.running': '与信実行中…',
     'issue.register': 'HashKeyテストネットに登録',

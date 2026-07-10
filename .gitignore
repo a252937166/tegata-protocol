@@ -21,3 +21,6 @@ dist/
 *.log
 packets/*.json
 !packets/sample-compliance-packet.json
+
+# runtime data (per-deployment; server/fixtures holds the reviewed templates)
+server/data/

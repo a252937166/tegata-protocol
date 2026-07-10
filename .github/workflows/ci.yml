@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge build
+        working-directory: contracts
+      - run: forge test -vvv
+        working-directory: contracts
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: app
+      - run: npm run build
+        working-directory: app
+
+  # Live evidence verification: re-runs the auditor CLI against the sample
+  # packet using public RPC + Coordinator reads. Network-dependent by nature,
+  # so it must not redden CI on a sandbox hiccup — deterministic jobs above
+  # are the merge gate.
+  evidence-live:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tegata-protocol
+      - uses: actions/checkout@v4
+        with:
+          repository: project-hsp/hsp
+          ref: 98afbb9a8b89b34ad55b6f97a416fab18f3128c6
+          path: hsp
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: tegata-protocol/server
+      - run: npx tsx src/verify-packet.ts ../packets/sample-compliance-packet.json
+        working-directory: tegata-protocol/server

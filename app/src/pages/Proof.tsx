@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, liveReport } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { ExtLink, CopyText, Spinner } from '../components/ui';
 import { shortHash } from '../lib/format';
@@ -37,8 +37,9 @@ export default function Proof() {
   const funding = legs.find((l) => l.leg === 'funding');
   const repayment = legs.find((l) => l.leg === 'repayment');
   // every tile is derived from live config or the latest real run of the
-  // shared verification core — never asserted in page source
-  const report = showcase?.verification ?? null;
+  // shared verification core — never asserted in page source; stale or
+  // errored reports downgrade to pending
+  const report = liveReport(showcase?.verification);
   const chk = (id: string) => report?.checks.find((c) => c.id === id)?.pass ?? false;
 
   return (

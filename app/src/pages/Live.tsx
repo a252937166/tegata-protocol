@@ -219,6 +219,7 @@ export default function Live() {
   const onNetwork = isConnected && chainId === hashkeyTestnet.id;
 
   const { data: cfgData } = useQuery({ queryKey: ['config'], queryFn: api.config, staleTime: 60_000 });
+  const { data: ready } = useQuery({ queryKey: ['readiness'], queryFn: api.readiness, refetchInterval: 30_000 });
   const { data: invData } = useQuery({ queryKey: ['invoices'], queryFn: api.invoices, refetchInterval: 12_000 });
   const { data: kyc, refetch: refetchKyc } = useQuery({
     queryKey: ['kyc', address],
@@ -266,9 +267,16 @@ export default function Live() {
     if (!address) return;
     setClaiming(true);
     try {
+      const before = ((usdcBal as bigint | undefined) ?? 0n);
       await api.faucet(address);
-      await new Promise((r) => setTimeout(r, 3500));
-      await refetchUsdc();
+      // poll until the balance actually moves (transfers land in seconds,
+      // but never at a fixed delay) — give up after 45s and let the
+      // balance line show reality
+      for (let i = 0; i < 30; i++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const r2 = await refetchUsdc();
+        if ((((r2.data as bigint | undefined) ?? 0n) > before)) break;
+      }
     } finally {
       setClaiming(false);
     }
@@ -403,6 +411,37 @@ export default function Live() {
       <h1 className="font-display text-4xl font-bold mt-3">{t('live.title')}</h1>
       <p className="text-ink2 mt-3 leading-relaxed">{t('live.sub')}</p>
 
+      {/* live-demo readiness — real component states, refreshed every 30s */}
+      {ready && (
+        <div
+          className={`mt-5 rounded-xl border px-4 py-3 text-xs flex flex-wrap items-center gap-x-5 gap-y-1.5 ${
+            ready.ok ? 'border-line bg-(--paper2)/50' : 'border-(--bad) bg-(--bad-soft)'
+          }`}
+        >
+          <span className="font-bold tracking-[0.12em] text-[0.65rem] text-ink3">{t('live.ready.label')}</span>
+          {(
+            [
+              ['HashKey RPC', ready.components.chain.ok],
+              ['HSP Coordinator', ready.components.coordinator.ok],
+              [t('live.ready.verifier'), ready.components.showcaseVerification.ok],
+            ] as const
+          ).map(([name, ok]) => (
+            <span key={name} className={`inline-flex items-center gap-1.5 ${ok ? 'text-good' : 'text-bad'}`}>
+              <span className={`h-1.5 w-1.5 rounded-full inline-block ${ok ? 'bg-good' : 'bg-bad'}`} />
+              {name}
+            </span>
+          ))}
+          {!ready.ok && (
+            <span className="text-bad font-semibold w-full sm:w-auto">
+              {t('live.ready.degraded')}{' '}
+              <a href="/showcase" className="underline underline-offset-2">
+                {t('hero.ctaShowcase')} →
+              </a>
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="mt-10">
         {/* 1 connect */}
         <StepShell n={1} state={isConnected ? 'done' : 'active'} title={t('live.step1')}>
@@ -511,15 +550,31 @@ export default function Live() {
         <StepShell n={5} state={phase === 'done' ? 'done' : picked ? 'active' : 'todo'} title={t('live.step5')}>
           <p className="text-sm text-ink2 mb-3">{t('live.fund.b')}</p>
           {picked && phase !== 'done' && (
-            <div className="card p-4 mb-3 text-sm flex items-center justify-between">
-              <span>
-                {picked.fields!.invoiceNumber} · <span className="text-ink3">{t('live.pick.discounted')}</span>
-              </span>
-              <span className="font-display text-xl font-bold tabular-nums">${usdc(youPay)}</span>
+            <div className="card p-4 mb-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span>
+                  {picked.fields!.invoiceNumber} · <span className="text-ink3">{t('live.pick.discounted')}</span>
+                </span>
+                <span className="font-display text-xl font-bold tabular-nums">${usdc(youPay)}</span>
+              </div>
+              {usdcBal !== undefined && (usdcBal as bigint) < youPay && (
+                <div className="mt-2.5 pt-2.5 border-t border-line text-xs text-bad flex flex-wrap items-center gap-x-3 gap-y-1 tabular-nums">
+                  <span>
+                    {t('live.fund.short')} ${usdc(youPay)} · {t('live.funds.balance')} ${usdc(usdcBal as bigint)}
+                  </span>
+                  <button className="btn !py-1 !px-2.5 text-xs" disabled={claiming} onClick={claimFunds}>
+                    {claiming ? <Spinner /> : null} {t('live.funds.claim')}
+                  </button>
+                </div>
+              )}
             </div>
           )}
           {(phase === 'idle' || phase === 'error') && (
-            <button className="btn btn-primary" onClick={fund}>
+            <button
+              className="btn btn-primary"
+              disabled={Boolean(picked && usdcBal !== undefined && (usdcBal as bigint) < youPay)}
+              onClick={fund}
+            >
               {t('live.fund.go')}
             </button>
           )}
