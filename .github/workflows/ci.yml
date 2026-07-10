@@ -47,6 +47,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm install --ignore-scripts --no-audit --no-fund
+        working-directory: hsp
       - run: npm ci
         working-directory: tegata-protocol/server
       - run: |
@@ -74,6 +76,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm install --ignore-scripts --no-audit --no-fund
+        working-directory: hsp
       - run: npm ci
         working-directory: tegata-protocol/server
       - run: npx tsx src/verify-packet.ts ../packets/sample-compliance-packet.json
