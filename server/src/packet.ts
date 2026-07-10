@@ -66,13 +66,24 @@ export interface CompliancePacket {
 }
 
 /**
- * The packet hash is computed over a DETERMINISTIC projection of the packet:
- * `generatedAt` (a courtesy display field) is excluded, so rebuilding the same
- * on-chain state always reproduces the same hash. Everything else — triples,
- * decisions, hashes, anchors — is content-addressed data.
+ * The packet hash is computed over a DETERMINISTIC projection of the packet.
+ * Excluded as display-only provenance:
+ *   - `generatedAt` (build timestamp)
+ *   - each leg's `settlementTxHash` (known to the original payer run but not
+ *     recoverable from a chain-state rebuild; the settlement itself is already
+ *     content-addressed by paymentId + the adapter-signed receipt)
+ * Everything else — triples, decisions, hashes, anchors — is content-addressed
+ * data, so rebuilding from primary sources reproduces the same hash.
  */
 export function packetHashOf(packet: CompliancePacket): `0x${string}` {
-  const { generatedAt: _volatile, ...hashable } = packet;
+  const { generatedAt: _volatile, ...rest } = packet;
+  const hashable = {
+    ...rest,
+    hspSettlement: {
+      ...rest.hspSettlement,
+      legs: rest.hspSettlement.legs.map(({ settlementTxHash: _tx, ...leg }) => leg),
+    },
+  };
   return keccakOfJson(hashable);
 }
 

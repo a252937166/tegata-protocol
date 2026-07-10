@@ -1,7 +1,7 @@
 {
   "packetVersion": "1",
   "protocol": "TEGATA Protocol",
-  "generatedAt": "2026-07-05T15:06:27.661Z",
+  "generatedAt": "2026-07-10T06:31:34.063Z",
   "invoice": {
     "registryId": "15",
     "invoiceHash": "0x7ec4356766b5c0842c0957a77734031ab09430b2c06ccda376501d6d396550dd",
@@ -16,9 +16,9 @@
       "discountBps": 250,
       "rationale": "Yamato Retail Holdings is a well-established corporate payer with strong credit standing, making default risk very low. The invoice has a short 30-day tenor, further minimizing exposure. A confidence score of 1.0 indicates verified, high-certainty receivables, and the small face value of 5.00 USDC does not alter the fundamental credit strength.",
       "factors": {
-        "payerCredit": "Yamato Retail Holdings Co., Ltd. – strong corporate",
-        "tenor": "30 days – short duration",
-        "confidence": "1.0 – high certainty",
+        "payerCredit": "Yamato Retail Holdings Co., Ltd. \u2013 strong corporate",
+        "tenor": "30 days \u2013 short duration",
+        "confidence": "1.0 \u2013 high certainty",
         "invoiceValidity": "Clear details, no discrepancies"
       },
       "assessedAt": "2026-07-05T15:05:12.306Z"
@@ -50,7 +50,6 @@
           "name": "hashkey-testnet",
           "chainId": 133
         },
-        "settlementTxHash": "0x745fb437ef0351c1a46fa2724c95e64e7a04a59613bba413d659ab420c4f6161",
         "mandate": {
           "body": {
             "nonce": "0xa01ae2a02b9143cd1211f13743591bc9d74fd7379c3d8c3d3ab32cdf2f0888a1",
@@ -142,7 +141,6 @@
           "name": "hashkey-testnet",
           "chainId": 133
         },
-        "settlementTxHash": "0x0dd0d81799ddd200061594a3214777c6bb5236d0fb05912dafec49e8040f6ee2",
         "mandate": {
           "body": {
             "nonce": "0x1d3213a48bb001526dcce4bb7b6bb2f023ac20dfe0e7ee9818f362c9c1e365cb",
@@ -252,5 +250,5 @@
       ]
     }
   },
-  "disclaimer": "Demo workflow only; not a public offering of securities or financial services. Invoice documents never go on-chain — hashes only."
+  "disclaimer": "Demo workflow only; not a public offering of securities or financial services. Invoice documents never go on-chain \u2014 hashes only."
 }
