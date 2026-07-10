@@ -11,8 +11,8 @@ import {
 import { hashTypedData } from 'viem';
 import { hashkeyTestnet, ERC20_ABI } from '../lib/wagmi';
 import { api, type ApiInvoice, type InvoiceFields, type RiskReport } from '../lib/api';
-import { useLang } from '../lib/i18n';
-import { Spinner, StatusBadge, ExtLink, CopyText } from '../components/ui';
+import { useLang, type TKey } from '../lib/i18n';
+import { Spinner, StatusBadge, ExtLink, CopyText, HankoStamp } from '../components/ui';
 import { usdc, shortAddr, shortHash, tsToDate } from '../lib/format';
 
 const SAMPLE_DOC = () =>
@@ -387,8 +387,18 @@ export default function Live() {
 
   const youPay = picked ? (BigInt(picked.faceAmount) * BigInt(10_000 - (picked.risk?.discountBps ?? 200))) / 10_000n : 0n;
 
+  const provesItems: { k: TKey; lit: boolean }[] = [
+    { k: 'live.proves.1', lit: ['observing', 'done'].includes(phase) },
+    { k: 'live.proves.2', lit: ['observing', 'done'].includes(phase) },
+    { k: 'live.proves.3', lit: phase === 'done' },
+    { k: 'live.proves.4', lit: phase === 'done' },
+    { k: 'live.proves.5', lit: phase === 'done' },
+    { k: 'live.proves.6', lit: phase === 'done' },
+  ];
+
   return (
-    <div className="mx-auto max-w-3xl px-4 sm:px-6 py-14 fade-in">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-14 fade-in lg:grid lg:grid-cols-[1fr_270px] lg:gap-12">
+      <div className="max-w-3xl">
       <div className="section-label">{t('nav.live')}</div>
       <h1 className="font-display text-4xl font-bold mt-3">{t('live.title')}</h1>
       <p className="text-ink2 mt-3 leading-relaxed">{t('live.sub')}</p>
@@ -416,20 +426,32 @@ export default function Live() {
           )}
         </StepShell>
 
-        {/* 3 funds + kyc */}
+        {/* 3 funds + kyc — one combined action */}
         <StepShell
           n={3}
           state={hasFunds && kycOk ? 'done' : onNetwork ? 'active' : 'todo'}
           title={t('live.step3')}
         >
           <p className="text-sm text-ink2 mb-3">{t('live.funds.b')}</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <button className="btn" disabled={claiming || hasFunds} onClick={claimFunds}>
-              {claiming ? <Spinner /> : null} {hasFunds ? '✓' : ''} {t('live.funds.claim')}
+          {!(hasFunds && kycOk) && (
+            <button
+              className="btn btn-primary"
+              disabled={claiming || attesting}
+              onClick={async () => {
+                if (!hasFunds) await claimFunds();
+                if (!kycOk) await issueKyc();
+              }}
+            >
+              {claiming || attesting ? <Spinner /> : null} {t('live.prepare')}
             </button>
-            <button className="btn" disabled={attesting || kycOk} onClick={issueKyc}>
-              {attesting ? <Spinner /> : null} {kycOk ? `✓ ${t('live.funds.kycOk')}` : t('live.funds.kyc')}
-            </button>
+          )}
+          <div className="mt-3 space-y-1 text-sm">
+            <div className={`flex items-center gap-2 ${hasFunds ? 'text-good' : 'text-ink3'}`}>
+              <span className="font-bold w-4">{hasFunds ? '✓' : claiming ? '…' : '○'}</span> {t('live.prepare.f')}
+            </div>
+            <div className={`flex items-center gap-2 ${kycOk ? 'text-good' : 'text-ink3'}`}>
+              <span className="font-bold w-4">{kycOk ? '✓' : attesting ? '…' : '○'}</span> {t('live.prepare.k')}
+            </div>
           </div>
           {address && (
             <div className="text-xs text-ink3 mt-3 tabular-nums">
@@ -534,7 +556,17 @@ export default function Live() {
             <div className="font-bold text-[0.95rem] mt-1.5">{t('live.step6')}</div>
             {phase === 'done' && result && (
               <div className="mt-3 card p-5 fade-in border-(--good)/40">
-                <div className="text-good font-display text-xl font-bold">✓ {t('live.done.title')}</div>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-good font-display text-xl font-bold">✓ {t('live.done.title')}</div>
+                    <div className="mt-2.5 space-y-1 text-sm text-ink2">
+                      <div>✓ {t('live.accept.l1')}</div>
+                      <div>✓ {t('live.accept.l2')}</div>
+                      <div>✓ {t('live.accept.l3')}</div>
+                    </div>
+                  </div>
+                  <HankoStamp size="md" />
+                </div>
                 <div className="mt-3 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-ink3">paymentId</span>
@@ -581,6 +613,27 @@ export default function Live() {
       </div>
 
       <IssuePanel />
+      </div>
+
+      {/* what this demo proves — sticky rail, lights up as the flow advances */}
+      <aside className="hidden lg:block">
+        <div className="sticky top-24 card p-5">
+          <div className="text-[0.7rem] font-bold tracking-[0.16em] text-accent mb-3">{t('live.proves.title')}</div>
+          <ol className="space-y-2.5">
+            {provesItems.map((it, i) => (
+              <li
+                key={it.k}
+                className={`flex gap-2.5 text-[0.8rem] leading-snug transition-colors ${
+                  it.lit ? 'text-good font-semibold' : 'text-ink3'
+                }`}
+              >
+                <span className="font-bold w-4 flex-none">{it.lit ? '✓' : i + 1}</span>
+                {t(it.k)}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </aside>
     </div>
   );
 }

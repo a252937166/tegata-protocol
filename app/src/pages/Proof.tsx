@@ -43,6 +43,26 @@ export default function Proof() {
       <h1 className="font-display text-4xl font-bold mt-3">{t('proof.title')}</h1>
       <p className="text-ink2 mt-3">{t('proof.sub')}</p>
 
+      {/* evidence wall */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+        {(
+          [
+            ['proof.tile.mainnet', 'proof.tile.mainnet.v', cfg.mainnet.deployed],
+            ['proof.tile.trust', 'proof.tile.trust.v', true],
+            ['proof.tile.life', 'proof.tile.life.v', true],
+            ['proof.tile.verifier', 'proof.tile.verifier.v', true],
+          ] as const
+        ).map(([k, v, ok]) => (
+          <div key={k} className={`rounded-xl border px-4 py-4 bg-(--card) ${ok ? 'border-(--good)' : 'border-line'}`}>
+            <div className="text-[0.65rem] font-bold tracking-[0.12em] text-ink3">{t(k)}</div>
+            <div className={`font-bold text-sm mt-1.5 ${ok ? 'text-good' : 'text-ink2'}`}>
+              {ok ? '✓ ' : ''}
+              {t(v)}
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* mainnet */}
       <div className="card p-6 mt-10">
         <div className="flex items-center gap-3 mb-4">

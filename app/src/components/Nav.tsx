@@ -1,5 +1,7 @@
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { shortAddr } from '../lib/format';
 
@@ -64,6 +66,8 @@ export function WalletButton() {
 
 export default function Nav({ theme, setTheme }: { theme: string; setTheme: (t: string) => void }) {
   const { t } = useLang();
+  const { pathname } = useLocation();
+  const { data: cfg } = useQuery({ queryKey: ['config'], queryFn: api.config, staleTime: 60_000 });
   const links = [
     { to: '/showcase', label: t('nav.showcase') },
     { to: '/live', label: t('nav.live') },
@@ -92,10 +96,25 @@ export default function Nav({ theme, setTheme }: { theme: string; setTheme: (t: 
             </NavLink>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1.5">
+          {cfg?.mainnet.deployed && (
+            <Link
+              to="/proof"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-(--good) px-2.5 py-1 text-[0.68rem] font-bold text-good whitespace-nowrap"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-good inline-block" /> MAINNET LIVE
+            </Link>
+          )}
           <LangToggle />
           <ThemeToggle theme={theme} setTheme={setTheme} />
-          <WalletButton />
+          {/* the strongest judge path needs no wallet — only the live demo asks for one */}
+          {pathname === '/live' ? (
+            <WalletButton />
+          ) : (
+            <Link to="/live" className="btn btn-ghost !py-1.5 text-xs whitespace-nowrap hidden sm:inline-flex">
+              {t('wallet.connect')} →
+            </Link>
+          )}
         </div>
       </div>
     </header>

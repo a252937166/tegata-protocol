@@ -71,6 +71,21 @@ export function CopyText({ text, display }: { text: string; display?: string }) 
   );
 }
 
+/** The vermilion approval seal — the product's proof moment. */
+export function HankoStamp({ size = 'md', label = 'ACCEPT' }: { size?: 'sm' | 'md' | 'lg'; label?: string }) {
+  const dims = { sm: 'w-20 h-20 text-[9px]', md: 'w-28 h-28 text-[11px]', lg: 'w-40 h-40 text-sm' }[size];
+  const big = { sm: 'text-sm', md: 'text-lg', lg: 'text-2xl' }[size];
+  return (
+    <div
+      className={`${dims} flex-none rounded-xl border-[3px] border-(--accent) text-accent flex flex-col items-center justify-center gap-0.5 rotate-[-6deg] select-none`}
+      style={{ boxShadow: 'inset 0 0 0 2px var(--accent-soft)' }}
+    >
+      <span className="font-display font-bold tracking-widest">検証済</span>
+      <span className={`font-display font-bold ${big} tracking-wider`}>{label}</span>
+    </div>
+  );
+}
+
 export function OfflineVerifyHint({ packetName }: { packetName: string }) {
   const { t } = useLang();
   return (
