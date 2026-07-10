@@ -6,9 +6,10 @@
  *   npm run api        (PORT env, default 4033)
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { getAddress, parseEther, type Address, type Hex } from 'viem';
+import { getAddress, keccak256, parseEther, toBytes, type Address, type Hex } from 'viem';
 import { cfg, repoRoot, hspExplorerUrl, mainnetDeployment } from './config.ts';
 import {
   getInvoice,
@@ -123,8 +124,18 @@ function activeReservation(invoiceId: string) {
 // Every prepared paymentId is bound to (invoice, leg) server-side, so a
 // mandate settled for invoice A can never be submitted to advance invoice B —
 // even if both invoices happen to quote identical amounts and parties.
+// Binding is DURABLE across restarts: prepare returns a stateless HMAC token
+// over (paymentId, invoiceId, leg, payer, expiresAt); the in-memory map is
+// just the fast path. A wallet that already broadcast funds can therefore
+// always complete submit, even if the server redeployed in between.
 const PENDING_PAYMENT_MS = 60 * 60_000;
 const pendingPayments = new Map<string, { invoiceId: string; leg: string; until: number }>();
+const prepareSecret = keccak256(toBytes(`${cfg.attestorKey}:prepare-token-v1`));
+function prepareTokenFor(p: { paymentId: string; invoiceId: string; leg: string; payer: string; expiresAt: number }) {
+  return createHmac('sha256', prepareSecret)
+    .update(`${p.paymentId.toLowerCase()}|${p.invoiceId}|${p.leg}|${p.payer.toLowerCase()}|${p.expiresAt}`)
+    .digest('hex');
+}
 function rememberPayment(paymentId: string, invoiceId: string, leg: string) {
   pendingPayments.set(paymentId.toLowerCase(), { invoiceId, leg, until: Date.now() + PENDING_PAYMENT_MS });
   if (pendingPayments.size > 5000) {
@@ -417,7 +428,23 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     }
     const prepared = preparePayment({ payer, to, amount });
     rememberPayment(prepared.paymentId, invoiceId.toString(), leg);
-    return json(res, 200, { ...prepared, leg, invoiceId: invoiceId.toString(), to, amount: amount.toString() });
+    const expiresAt = Date.now() + PENDING_PAYMENT_MS;
+    const prepareToken = prepareTokenFor({
+      paymentId: prepared.paymentId,
+      invoiceId: invoiceId.toString(),
+      leg,
+      payer,
+      expiresAt,
+    });
+    return json(res, 200, {
+      ...prepared,
+      leg,
+      invoiceId: invoiceId.toString(),
+      to,
+      amount: amount.toString(),
+      expiresAt,
+      prepareToken,
+    });
   }
 
   if (path === '/api/hsp/submit' && method === 'POST') {
@@ -475,9 +502,25 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     }
     // origin binding: the paymentId must be one WE prepared for THIS
     // invoice and leg — a mandate settled for invoice A can never advance
-    // invoice B, even with identical amounts and parties
+    // invoice B, even with identical amounts and parties. Fast path is the
+    // in-memory map; the HMAC prepare token covers server restarts so an
+    // already-broadcast settlement can always complete.
     const pending = pendingPayments.get(String(body.paymentId ?? '').toLowerCase());
-    if (!pending || pending.invoiceId !== invoiceId.toString() || pending.leg !== leg || pending.until < Date.now()) {
+    const memoryOk =
+      !!pending && pending.invoiceId === invoiceId.toString() && pending.leg === leg && pending.until >= Date.now();
+    const tokenExpiresAt = Number(body.expiresAt ?? 0);
+    const tokenOk =
+      typeof body.prepareToken === 'string' &&
+      tokenExpiresAt > Date.now() &&
+      body.prepareToken ===
+        prepareTokenFor({
+          paymentId: String(body.paymentId ?? ''),
+          invoiceId: invoiceId.toString(),
+          leg,
+          payer: mandatePayer,
+          expiresAt: tokenExpiresAt,
+        });
+    if (!memoryOk && !tokenOk) {
       return json(res, 409, {
         error: 'unknown-payment',
         detail: 'paymentId was not prepared for this invoice/leg (or expired) — restart from prepare',
@@ -589,6 +632,13 @@ async function route(req: IncomingMessage, res: ServerResponse) {
 
   if (path === '/api/readiness' && method === 'GET') {
     const out: Record<string, unknown> = {};
+    const bal = (addr: Address) =>
+      publicClient.readContract({
+        address: cfg.stablecoin,
+        abi: [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] }] as const,
+        functionName: 'balanceOf',
+        args: [addr],
+      }) as Promise<bigint>;
     try {
       out.chain = { ok: true, block: (await publicClient.getBlockNumber()).toString() };
     } catch (e) {
@@ -604,6 +654,39 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     out.showcaseVerification = sv
       ? { ok: sv.allPass && !sv.stale && !sv.error, verifiedAt: sv.verifiedAt, stale: sv.stale }
       : { ok: false, error: showcaseCache.error ?? 'not yet computed' };
+    // demo inventory + treasuries (advisory — not part of the hard gate,
+    // the flow degrades gracefully; surfaced so operators see trouble early)
+    try {
+      const attestorAddr = privateKeyToAccount(cfg.attestorKey).address;
+      const [openCount, treasuryGas, treasuryUsdc, borrowerUsdc] = await Promise.all([
+        (async () => {
+          const next = await nextInvoiceId();
+          let open = 0;
+          for (let i = next - 1n; i >= 1n && next - i <= 30n; i--) {
+            try {
+              const inv = await getInvoice(i);
+              if (STATUS_LABELS[inv.status] === 'Registered' && getDoc(inv.invoiceHash)) open++;
+            } catch {
+              /* skip */
+            }
+          }
+          return open;
+        })(),
+        publicClient.getBalance({ address: attestorAddr }),
+        bal(attestorAddr),
+        bal(borrowerAccount.address),
+      ]);
+      out.inventory = { ok: openCount >= 1, openInvoices: openCount };
+      out.treasury = {
+        ok: treasuryGas > parseEther('0.05') && treasuryUsdc > 10_000_000n && borrowerUsdc > 5_000_000n,
+        faucetGasHsk: (Number(treasuryGas) / 1e18).toFixed(3),
+        faucetUsdc: (Number(treasuryUsdc) / 1e6).toFixed(2),
+        repaymentWalletUsdc: (Number(borrowerUsdc) / 1e6).toFixed(2),
+      };
+    } catch (e) {
+      out.inventory = { ok: false, error: (e as Error).message };
+      out.treasury = { ok: false, error: (e as Error).message };
+    }
     const ok = [out.chain, out.coordinator, out.showcaseVerification].every(
       (c) => (c as { ok: boolean }).ok,
     );

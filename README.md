@@ -49,11 +49,12 @@ Mainnet proof anchors (the showcase packet's hashes, anchored on mainnet as invo
 ```bash
 git clone https://github.com/a252937166/tegata-protocol
 git clone https://github.com/project-hsp/hsp        # SDK, side by side
+git -C hsp checkout 98afbb9a8b89b34ad55b6f97a416fab18f3128c6   # the pinned pre-1.0 commit
 cd tegata-protocol/server && npm install
 npx tsx src/verify-packet.ts ../packets/sample-compliance-packet.json
 ```
 
-Runs on your machine with **zero secrets** (only the public RPC + the Coordinator's public reads). The check list is a closed semantic loop — **34 checks for a full lifecycle**, in four layers:
+Runs on your machine with **zero secrets**. Everything is re-derived from the packet's embedded evidence, public HSP data (Coordinator reads need no key) and public HashKey Chain state. The check list is a closed semantic loop — **36 checks for a full lifecycle**, in four layers:
 
 1. **Structure** — strict runtime schema, leg cardinality vs lifecycle status, unique paymentIds
 2. **Trust roots** — pinned adapter, pinned compliance issuer, pinned chain + token, published contract addresses
@@ -91,8 +92,9 @@ SME (borrower)                       protocol                             lender
    │  ② TegataRegistry: hashes only      │   ③ KycGate: SBT-first identity  │
    │ ───────────────────────────────────▶│ ◀──────────────────────────────  │
    │                                     │   ④ HSP compliant payment        │
-   │  funds arrive, wallet-to-wallet     │      (kyc + sanctions signed     │
-   │ ◀───────────────────────────────────│       into the mandate)          │
+   │  funds arrive, wallet-to-wallet     │      (mandate REQUIRES kyc +     │
+   │ ◀───────────────────────────────────│       sanctions; issuer          │
+   │                                     │       attestations satisfy)      │
    │                                     │   ⑤ independent verification     │
    │  ⑥ repayment leg at maturity        │      (pinned adapter + issuer)   │
    │ ───────────────────────────────────▶│   ⑦ attestor-signed anchor       │

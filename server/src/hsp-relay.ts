@@ -117,6 +117,7 @@ async function fetchAttestationsFor(subject: Address) {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20_000), // a hung issuer must fail fast, not stall the demo
     });
     if (!res.ok) throw new Error(`issuer ${tag} failed: HTTP ${res.status}`);
     out.push(((await res.json()) as { attestation: unknown }).attestation);
@@ -132,6 +133,7 @@ async function coordinator(method: string, path: string, body?: unknown) {
       authorization: `Bearer ${cfg.apiKey}`,
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
+    signal: AbortSignal.timeout(30_000), // never let one stuck call freeze the pipeline
   });
   let json: unknown = null;
   try {

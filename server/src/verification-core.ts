@@ -103,6 +103,14 @@ function schemaErrors(p: CompliancePacket): string[] {
   }
   need(isAddr(p.chainAnchors?.registry?.contract), 'registry anchor contract must be an address');
   need(isAddr(p.chainAnchors?.settlementAnchors?.contract), 'settlement anchor contract must be an address');
+  need(isHex(p.chainAnchors?.registry?.registerTxHash, 32), 'registerTxHash must be bytes32');
+  // the anchor-tx list must correspond 1:1 with the legs
+  const anchorTxs = p.chainAnchors?.settlementAnchors?.txHashes ?? [];
+  need(
+    anchorTxs.length === (p.hspSettlement?.legs ?? []).length &&
+      (p.hspSettlement?.legs ?? []).every((l) => anchorTxs.includes(l.anchor?.txHash ?? '')),
+    'settlementAnchors.txHashes must match the legs one-to-one',
+  );
   return errs;
 }
 
@@ -341,8 +349,9 @@ async function legChecks(leg: SettlementLegPacket, invoice: Invoice, invoiceId: 
 }
 
 /**
- * Re-derive every claim in a compliance packet from primary sources.
- * A full (repaid) lifecycle currently produces 34 checks.
+ * Re-derive every claim in a compliance packet from public HSP data, public
+ * HashKey Chain state, and the packet's own embedded evidence.
+ * A full (repaid) lifecycle currently produces 36 checks.
  */
 export async function verifyPacket(packet: CompliancePacket): Promise<VerificationReport> {
   const checks: VerificationCheck[] = [];
@@ -356,7 +365,7 @@ export async function verifyPacket(packet: CompliancePacket): Promise<Verificati
     detail: errs.length ? errs.slice(0, 3).join('; ') : undefined,
   });
 
-  const legs = packet.hspSettlement.legs ?? [];
+  const legs = packet.hspSettlement?.legs ?? [];
   const fundingLegs = legs.filter((l) => l.leg === 'funding');
   const repaymentLegs = legs.filter((l) => l.leg === 'repayment');
   const status = packet.invoice.status;
@@ -379,8 +388,24 @@ export async function verifyPacket(packet: CompliancePacket): Promise<Verificati
     pass: new Set(legs.map((l) => l.paymentId.toLowerCase())).size === legs.length,
   });
 
+  // one settlement-native observation (chainId, token, txHash) may satisfy at
+  // most ONE mandate — two legs must never consume the same on-chain transfer
+  const observationKeys = legs
+    .map((l) => {
+      const proof = (l.receipt as { adapterProof?: string })?.adapterProof;
+      const d = proof ? decodeAdapterProof(proof) : null;
+      return d ? `${d.chainId}:${d.token.toLowerCase()}:${d.txHash.toLowerCase()}` : null;
+    })
+    .filter((k): k is string => k !== null);
+  checks.push({
+    id: 'unique-settlement-observations',
+    label: 'each leg consumes a distinct on-chain settlement observation (chain, token, tx)',
+    pass: observationKeys.length === legs.length && new Set(observationKeys).size === observationKeys.length,
+    detail: `${new Set(observationKeys).size}/${legs.length} distinct observation(s)`,
+  });
+
   // ---- layer 2: pinned trust roots ---------------------------------------
-  const pins = packet.hspSettlement.pinnedTrustConfig as {
+  const pins = packet.hspSettlement?.pinnedTrustConfig as {
     pinnedAdapterAddress: string;
     pinnedIssuerAddress?: string;
     chainId?: number;
@@ -464,6 +489,37 @@ export async function verifyPacket(packet: CompliancePacket): Promise<Verificati
         packet.identity.lender.toLowerCase() === invoice.lender.toLowerCase()),
   });
 
+  // the human-readable parsed fields must agree with the on-chain terms —
+  // no semantic split between what a reader sees and what the hashes bind
+  const pf = packet.invoice.parsedFields as {
+    amountBaseUnits?: string;
+    currency?: string;
+    issueDate?: string;
+    termDays?: number;
+    invoiceNumber?: string;
+    sellerName?: string;
+    payerName?: string;
+    extractionConfidence?: number;
+    confidence?: number;
+  };
+  const issueTs = Date.parse(`${pf.issueDate}T00:00:00Z`);
+  const conf = pf.extractionConfidence ?? pf.confidence ?? -1;
+  checks.push({
+    id: 'parsed-fields-consistency',
+    label: 'parsed fields agree with registry terms (amount, currency, issue+term = due, names)',
+    pass:
+      pf.amountBaseUnits === packet.invoice.faceAmountBaseUnits &&
+      pf.currency === 'USDC' &&
+      Number.isFinite(issueTs) &&
+      Math.floor(issueTs / 1000) + (pf.termDays ?? 0) * 86_400 === Number(invoice.dueDate) &&
+      Boolean(pf.invoiceNumber) &&
+      Boolean(pf.sellerName) &&
+      Boolean(pf.payerName) &&
+      conf >= 0 &&
+      conf <= 1,
+    detail: `issue ${pf.issueDate} + ${pf.termDays}d vs due ${packet.invoice.dueDate.slice(0, 10)}`,
+  });
+
   // paymentIds: strict, no fallback — cardinality checks above guarantee the
   // legs this compares against actually exist for the claimed status
   checks.push({
@@ -500,6 +556,7 @@ export async function verifyPacket(packet: CompliancePacket): Promise<Verificati
         (r.args.borrower ?? '').toLowerCase() === packet.identity.borrower.toLowerCase() &&
         (r.args.invoiceHash ?? '').toLowerCase() === packet.invoice.invoiceHash.toLowerCase() &&
         r.args.faceAmount === BigInt(packet.invoice.faceAmountBaseUnits) &&
+        r.args.dueDate === invoice.dueDate &&
         (r.args.riskReportHash ?? '').toLowerCase() === packet.invoice.riskReportHash.toLowerCase() &&
         KYC_MODE_LABELS[r.args.kycMode ?? 0] === packet.identity.borrowerKycMode,
       detail: r ? `kycMode at registration: ${KYC_MODE_LABELS[r.args.kycMode ?? 0]}` : 'event not found',

@@ -4,6 +4,8 @@ import { useLang } from '../lib/i18n';
 import { ExtLink, CopyText, Spinner } from '../components/ui';
 import { shortHash } from '../lib/format';
 
+declare const __BUILD_SHA__: string; // injected by vite define at build time
+
 function ContractRows({ contracts, explorer }: { contracts: Record<string, string>; explorer: string }) {
   const { t } = useLang();
   return (
@@ -47,6 +49,32 @@ export default function Proof() {
       <div className="section-label">{t('nav.proof')}</div>
       <h1 className="font-display text-4xl font-bold mt-3">{t('proof.title')}</h1>
       <p className="text-ink2 mt-3">{t('proof.sub')}</p>
+
+      {/* provenance strip — which exact build/deps produced this page */}
+      <div className="mt-5 rounded-xl border border-line bg-(--paper2)/50 px-4 py-2.5 text-xs flex flex-wrap gap-x-5 gap-y-1 tabular-nums">
+        <span>
+          <span className="text-ink3">app build</span>{' '}
+          <ExtLink href={`https://github.com/a252937166/tegata-protocol/commit/${__BUILD_SHA__}`} className="mono">
+            {__BUILD_SHA__}
+          </ExtLink>
+        </span>
+        <span>
+          <span className="text-ink3">HSP SDK</span>{' '}
+          <ExtLink href="https://github.com/project-hsp/hsp/commit/98afbb9a8b89b34ad55b6f97a416fab18f3128c6" className="mono">
+            98afbb9
+          </ExtLink>
+        </span>
+        <span>
+          <span className="text-ink3">{t('proof.strip.verifier')}</span>{' '}
+          {report ? `${report.total} checks` : '…'}
+        </span>
+        {report && (
+          <span>
+            <span className="text-ink3">{t('proof.strip.verified')}</span>{' '}
+            {Math.max(0, Math.round((Date.now() - Date.parse(report.verifiedAt)) / 60_000))} min ago
+          </span>
+        )}
+      </div>
 
       {/* evidence wall */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">

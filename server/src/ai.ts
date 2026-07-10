@@ -113,10 +113,13 @@ export async function parseInvoice(documentText: string): Promise<InvoiceFields>
   // deterministic fallback: fixtures are structured JSON documents
   const doc = extractJson(documentText) as Record<string, unknown> | null;
   if (!doc) throw new Error('cannot parse invoice document');
-  // decimal strings are HUMAN units ("5.00" -> 5,000,000); bare integer
-  // strings are already base units. parseUnits is exact — no float math.
-  const amount = String(doc.amount ?? '0');
-  const baseUnits = /^\d+$/.test(amount) ? amount : parseUnits(amount, 6).toString();
+  // `amount` is ALWAYS human units ("5" and "5.00" both mean 5 USDC);
+  // callers that already have base units must say so via `amountBaseUnits`.
+  // parseUnits is exact — no float math, no magnitude ambiguity.
+  const baseUnits =
+    doc.amountBaseUnits !== undefined
+      ? String(doc.amountBaseUnits)
+      : parseUnits(String(doc.amount ?? '0'), 6).toString();
   return {
     invoiceNumber: String(doc.invoiceNumber ?? doc.invoice_no ?? 'INV-UNKNOWN'),
     sellerName: String(doc.seller ?? doc.sellerName ?? 'unknown'),
@@ -202,15 +205,25 @@ export function validateInvoiceFields(fields: InvoiceFields): string | null {
   if (fields.currency !== 'USDC') {
     return 'this demo settles USDC-denominated invoices only (JPY invoices need an FX-attested flow — see KNOWN_LIMITATIONS)';
   }
+  // fail-closed: a malformed issue date must be rejected, never silently
+  // replaced — it would quietly change the financial meaning of the term
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.issueDate) || !Number.isFinite(Date.parse(`${fields.issueDate}T00:00:00Z`))) {
+    return 'issueDate must be a valid YYYY-MM-DD date';
+  }
+  if (!fields.invoiceNumber?.trim()) return 'invoiceNumber must be non-empty';
+  if (!fields.sellerName?.trim() || !fields.payerName?.trim()) return 'sellerName and payerName must be non-empty';
+  const conf = fields.extractionConfidence ?? 0;
+  if (!(conf >= 0 && conf <= 1)) return 'extractionConfidence must be within 0..1';
   return null;
 }
 
 /**
  * Financial semantics: the payment term runs from the invoice's ISSUE date,
- * not from whenever someone happened to click register.
+ * not from whenever someone happened to click register. Callers must run
+ * validateInvoiceFields first — this throws on unparseable dates.
  */
 export function dueDateFrom(fields: InvoiceFields): bigint {
-  const issueTs = Math.floor(Date.parse(`${fields.issueDate}T00:00:00Z`) / 1000);
-  const base = Number.isFinite(issueTs) ? issueTs : Math.floor(Date.now() / 1000);
-  return BigInt(base + fields.termDays * 86_400);
+  const issueTs = Date.parse(`${fields.issueDate}T00:00:00Z`);
+  if (!Number.isFinite(issueTs)) throw new Error('issueDate must be a valid YYYY-MM-DD date');
+  return BigInt(Math.floor(issueTs / 1000) + fields.termDays * 86_400);
 }

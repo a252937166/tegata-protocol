@@ -44,6 +44,8 @@ export interface Readiness {
     chain: { ok: boolean; block?: string; error?: string };
     coordinator: { ok: boolean; status?: number; error?: string };
     showcaseVerification: { ok: boolean; verifiedAt?: string; stale?: boolean; error?: string };
+    inventory?: { ok: boolean; openInvoices?: number; error?: string };
+    treasury?: { ok: boolean; faucetGasHsk?: string; faucetUsdc?: string; repaymentWalletUsdc?: string; error?: string };
   };
 }
 export interface RiskReport {
@@ -106,6 +108,9 @@ export interface PreparedPayment {
   leg: string;
   to: `0x${string}`;
   amount: string;
+  /** stateless origin-binding token — lets submit succeed even across a server restart */
+  prepareToken: string;
+  expiresAt: number;
   toSign: [
     { id: 'mandate'; method: 'eth_signTypedData_v4'; params: { address: `0x${string}`; typedData: unknown } },
     { id: 'settlement'; method: 'eth_sendTransaction'; params: { tx: { from: string; to: `0x${string}`; data: `0x${string}`; value: string; chainId: number } } },
@@ -160,6 +165,8 @@ export const api = {
     mandateBody: Record<string, unknown>;
     mandateSignature: string;
     txHash: string;
+    prepareToken?: string;
+    expiresAt?: number;
   }) =>
     req<{ paymentId: string; status: string; anchorTx: string; hspExplorerUrl: string; packetHash: string; invoice: ApiInvoice }>(
       'POST',

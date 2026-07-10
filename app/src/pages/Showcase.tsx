@@ -22,13 +22,16 @@ function ReceiptRow({ label, pass }: { label: string; pass: boolean | undefined 
   );
 }
 
-// the five per-leg checks the core actually runs, in display order
+// the eight per-leg checks the core actually runs, in display order
 const LEG_CHECK_ROWS: [suffix: string, key: TKey][] = [
   ['-verifier', 'receipt.verifier'],
+  ['-decision-match', 'receipt.decision'],
   ['-attestations', 'receipt.attest'],
   ['-commercial', 'receipt.commercial'],
+  ['-receipt-binding', 'receipt.binding'],
   ['-evidence-hash', 'receipt.evidence'],
   ['-anchor', 'receipt.anchored'],
+  ['-anchor-event', 'receipt.anchorEvent'],
 ];
 
 function LegReceipt({

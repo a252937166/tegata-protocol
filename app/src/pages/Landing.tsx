@@ -267,6 +267,12 @@ export default function Landing() {
             <RailArrow />
             <RailNode accent title={t('rail.e4')} sub={t('rail.e4s')} />
           </div>
+
+          <p className="mt-8 text-center font-display text-lg font-bold leading-relaxed">
+            <span className="text-accent">{t('rail.layers.1')}</span>{' '}
+            <span>{t('rail.layers.2')}</span>{' '}
+            <span className="text-ink2">{t('rail.layers.3')}</span>
+          </p>
         </div>
       </section>
 

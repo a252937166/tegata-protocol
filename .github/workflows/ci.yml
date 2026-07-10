@@ -30,6 +30,31 @@ jobs:
       - run: npm run build
         working-directory: app
 
+  # Deterministic server gate: the API and its entrypoints must bundle
+  # cleanly against the pinned HSP SDK (catches broken imports, syntax and
+  # type-stripping issues without needing network or secrets).
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tegata-protocol
+      - uses: actions/checkout@v4
+        with:
+          repository: project-hsp/hsp
+          ref: 98afbb9a8b89b34ad55b6f97a416fab18f3128c6
+          path: hsp
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: tegata-protocol/server
+      - run: |
+          for entry in api e2e verify-packet test-negative test-packet-negative test-judge-flow; do
+            npx esbuild src/$entry.ts --bundle --platform=node --format=esm --outfile=/dev/null --log-level=error
+          done
+        working-directory: tegata-protocol/server
+
   # Live evidence verification: re-runs the auditor CLI against the sample
   # packet using public RPC + Coordinator reads. Network-dependent by nature,
   # so it must not redden CI on a sandbox hiccup — deterministic jobs above

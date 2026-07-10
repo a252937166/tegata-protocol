@@ -129,7 +129,7 @@ export function buildPacket(params: {
       legs: params.legs,
       pinnedTrustConfig: {
         chainName: cfg.hspChainName,
-        chainId: 133,
+        chainId: cfg.anchorChainId,
         coordinatorUrl: cfg.coordinatorUrl,
         pinnedAdapterAddress: cfg.pinnedAdapterAddress,
         pinnedIssuerAddress: cfg.pinnedIssuerAddress,

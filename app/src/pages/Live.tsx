@@ -10,7 +10,7 @@ import {
 } from 'wagmi';
 import { hashTypedData } from 'viem';
 import { hashkeyTestnet, ERC20_ABI } from '../lib/wagmi';
-import { api, type ApiInvoice, type InvoiceFields, type RiskReport } from '../lib/api';
+import { api, type ApiInvoice, type InvoiceFields, type RiskReport, type VerificationReport } from '../lib/api';
 import { useLang, type TKey } from '../lib/i18n';
 import { Spinner, StatusBadge, ExtLink, CopyText, HankoStamp } from '../components/ui';
 import { usdc, shortAddr, shortHash, tsToDate } from '../lib/format';
@@ -46,7 +46,11 @@ function IssuePanel() {
     invoiceHash: string;
     riskReportHash: string;
   } | null>(null);
+  const [underwroteText, setUnderwroteText] = useState('');
   const [registered, setRegistered] = useState<{ registerTx: string; invoice: ApiInvoice } | null>(null);
+  // "the quote you preview is the quote that registers" — editing the
+  // document after underwriting invalidates the preview until re-run
+  const docChanged = underwrote !== null && doc !== underwroteText;
 
   async function underwrite() {
     setBusy('underwriting');
@@ -54,6 +58,7 @@ function IssuePanel() {
     setRegistered(null);
     try {
       setUnderwrote(await api.underwrite(doc));
+      setUnderwroteText(doc);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -96,7 +101,7 @@ function IssuePanel() {
           )}
         </button>
         {underwrote && (
-          <button className="btn" disabled={busy !== 'idle'} onClick={register}>
+          <button className="btn" disabled={busy !== 'idle' || docChanged} onClick={register}>
             {busy === 'registering' ? (
               <>
                 <Spinner /> {t('issue.registering')}
@@ -107,6 +112,7 @@ function IssuePanel() {
           </button>
         )}
       </div>
+      {docChanged && <div className="text-sm text-bad mt-3">{t('issue.docChanged')}</div>}
       {error && <div className="text-sm text-bad mt-3 break-all">{error}</div>}
 
       {underwrote && (
@@ -179,7 +185,7 @@ function IssuePanel() {
   );
 }
 
-type FundPhase = 'idle' | 'preparing' | 'signing' | 'broadcast' | 'observing' | 'done' | 'error';
+type FundPhase = 'idle' | 'preparing' | 'signing' | 'broadcast' | 'observing' | 'verifying' | 'done' | 'error';
 
 function StepShell({
   n,
@@ -249,6 +255,9 @@ export default function Live() {
   } | null>(null);
   const [repaying, setRepaying] = useState(false);
   const [repayResult, setRepayResult] = useState<{ hspExplorerUrl: string; invoice: ApiInvoice } | null>(null);
+  // the final ACCEPT is not "the flow succeeded" — it is a fresh run of the
+  // FULL verification core over this invoice, same as the auditor CLI
+  const [liveVerdict, setLiveVerdict] = useState<VerificationReport | null>(null);
 
   const openInvoices = useMemo(() => {
     // hide invoices another visitor is actively funding (soft reservation);
@@ -302,7 +311,7 @@ export default function Live() {
   const prevAddress = useRef(address);
   useEffect(() => {
     if (prevAddress.current && address && address !== prevAddress.current) {
-      if (phase !== 'broadcast' && phase !== 'observing') {
+      if (phase !== 'broadcast' && phase !== 'observing' && phase !== 'verifying') {
         runRef.current++; // orphan any pre-broadcast run (nothing on-chain yet)
         setPhase('idle');
         setPicked(null);
@@ -352,9 +361,22 @@ export default function Live() {
         mandateBody: prepared.mandateBody,
         mandateSignature,
         txHash,
+        prepareToken: prepared.prepareToken,
+        expiresAt: prepared.expiresAt,
       });
       if (!alive()) return;
       setResult(submitted);
+
+      // settlement done — now prove it: run the FULL verification core over
+      // the freshly funded lifecycle before showing any ACCEPT
+      setPhase('verifying');
+      const report = await api.verify(picked.id);
+      if (!alive()) return;
+      if (!report.allPass) {
+        setLiveVerdict(report);
+        throw new Error(`settlement completed but full verification passed only ${report.passed}/${report.total}`);
+      }
+      setLiveVerdict(report);
       setPhase('done');
       qc.invalidateQueries({ queryKey: ['invoices'] });
       refetchUsdc();
@@ -377,6 +399,9 @@ export default function Live() {
     try {
       const r = await api.repay(result.invoice.id);
       setRepayResult(r);
+      // re-run the full core over the now-Repaid lifecycle (36 checks)
+      const report = await api.verify(result.invoice.id);
+      setLiveVerdict(report);
       qc.invalidateQueries({ queryKey: ['invoices'] });
     } catch (e) {
       setFundError((e as Error).message);
@@ -390,6 +415,7 @@ export default function Live() {
     setPhase('idle');
     setResult(null);
     setRepayResult(null);
+    setLiveVerdict(null);
     setFundError('');
   }
 
@@ -579,7 +605,7 @@ export default function Live() {
             </button>
           )}
           {phase === 'error' && <div className="text-sm text-bad mt-3 break-all">{fundError}</div>}
-          {['preparing', 'signing', 'broadcast', 'observing'].includes(phase) && (
+          {['preparing', 'signing', 'broadcast', 'observing', 'verifying'].includes(phase) && (
             <div className="mt-2">
               <div className="flex items-center gap-2.5 text-sm text-ink2">
                 <Spinner className="text-accent" />
@@ -587,7 +613,8 @@ export default function Live() {
                 {phase === 'signing' && t('live.fund.signing')}
                 {phase === 'broadcast' && t('live.fund.broadcast')}
                 {phase === 'observing' && t('live.fund.observing')}
-                {phase !== 'observing' && (
+                {phase === 'verifying' && t('live.fund.verifying')}
+                {phase !== 'observing' && phase !== 'verifying' && (
                   <button className="btn btn-ghost !py-1 !px-2.5 text-xs" onClick={cancelFund}>
                     {t('live.fund.cancel')}
                   </button>
@@ -614,13 +641,21 @@ export default function Live() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-good font-display text-xl font-bold">✓ {t('live.done.title')}</div>
-                    <div className="mt-2.5 space-y-1 text-sm text-ink2">
+                    {/* the verdict below is a fresh run of the FULL verification
+                        core over this invoice — the same checks as the auditor
+                        CLI — not a "flow succeeded" flag */}
+                    {liveVerdict && (
+                      <div className="mt-2 font-bold text-sm tabular-nums text-good">
+                        {liveVerdict.passed}/{liveVerdict.total} {t('live.done.checks')}
+                      </div>
+                    )}
+                    <div className="mt-2 space-y-1 text-sm text-ink2">
                       <div>✓ {t('live.accept.l1')}</div>
                       <div>✓ {t('live.accept.l2')}</div>
                       <div>✓ {t('live.accept.l3')}</div>
                     </div>
                   </div>
-                  <HankoStamp size="md" />
+                  {liveVerdict?.allPass && <HankoStamp size="md" />}
                 </div>
                 <div className="mt-3 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between gap-2">
@@ -635,6 +670,18 @@ export default function Live() {
                     <span className="text-ink3">status</span>
                     <StatusBadge status={repayResult?.invoice.status ?? result.invoice.status} />
                   </div>
+                  {liveVerdict && (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-ink3">packetHash</span>
+                        <CopyText text={liveVerdict.packetHash} display={shortHash(liveVerdict.packetHash, 14)} />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 tabular-nums">
+                        <span className="text-ink3">{t('live.done.verifiedAt')}</span>
+                        <span>block {liveVerdict.blockNumber}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs">
                   <ExtLink href={result.hspExplorerUrl}>{t('common.hspExplorer')}</ExtLink>

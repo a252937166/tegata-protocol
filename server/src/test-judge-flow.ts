@@ -81,6 +81,8 @@ const submitted = (await call('POST', '/api/hsp/submit', {
   mandateBody: prepared.mandateBody,
   mandateSignature,
   txHash,
+  prepareToken: (prepared as { prepareToken?: string }).prepareToken,
+  expiresAt: (prepared as { expiresAt?: number }).expiresAt,
 })) as { status: string; anchorTx: string; invoice: { status: string; lender: string } };
 console.log(`[5] ${submitted.status}; anchored ${submitted.anchorTx}`);
 console.log(`    invoice status: ${submitted.invoice.status}, lender = ${submitted.invoice.lender}`);
