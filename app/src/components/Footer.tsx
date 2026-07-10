@@ -4,6 +4,8 @@ import { useLang } from '../lib/i18n';
 import { ExtLink } from './ui';
 import { shortAddr } from '../lib/format';
 
+declare const __BUILD_SHA__: string; // injected by vite define at build time
+
 export default function Footer() {
   const { t } = useLang();
   const { data: cfg } = useQuery({ queryKey: ['config'], queryFn: api.config, staleTime: 60_000 });
@@ -55,6 +57,12 @@ export default function Footer() {
             </>
           )}
           <p className="text-ink3 pt-2">{t('foot.built')}</p>
+          <p className="text-ink3">
+            build{' '}
+            <ExtLink href={`https://github.com/a252937166/tegata-protocol/commit/${__BUILD_SHA__}`} className="mono">
+              {__BUILD_SHA__}
+            </ExtLink>
+          </p>
         </div>
       </div>
     </footer>

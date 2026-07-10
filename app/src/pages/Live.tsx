@@ -121,7 +121,7 @@ function IssuePanel() {
                   ['payer', underwrote.fields.payerName],
                   ['face', `$${usdc(underwrote.fields.amountBaseUnits)} ${underwrote.fields.currency}`],
                   ['term', `${underwrote.fields.termDays} days`],
-                  ['confidence', underwrote.fields.confidence.toFixed(2)],
+                  ['extraction confidence', (underwrote.fields.extractionConfidence ?? underwrote.fields.confidence ?? 0).toFixed(2)],
                 ] as const
               ).map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-3">

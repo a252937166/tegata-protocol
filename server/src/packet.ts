@@ -54,6 +54,7 @@ export interface CompliancePacket {
       chainId: number;
       coordinatorUrl: string;
       pinnedAdapterAddress: string;
+      pinnedIssuerAddress: string;
       stablecoin: string;
       pinNote: string;
     };
@@ -75,6 +76,11 @@ export interface CompliancePacket {
  * Everything else — triples, decisions, hashes, anchors — is content-addressed
  * data, so rebuilding from primary sources reproduces the same hash.
  */
+/** discounted = face * (1 - discountBps/10000), floored to integer base units */
+export function discountedAmount(faceBaseUnits: bigint, discountBps: number): bigint {
+  return (faceBaseUnits * BigInt(10_000 - discountBps)) / 10_000n;
+}
+
 export function packetHashOf(packet: CompliancePacket): `0x${string}` {
   const { generatedAt: _volatile, ...rest } = packet;
   const hashable = {
@@ -126,10 +132,11 @@ export function buildPacket(params: {
         chainId: 133,
         coordinatorUrl: cfg.coordinatorUrl,
         pinnedAdapterAddress: cfg.pinnedAdapterAddress,
+        pinnedIssuerAddress: cfg.pinnedIssuerAddress,
         stablecoin: cfg.stablecoin,
         pinNote:
-          'adapter address pinned out-of-band at integration time (GET /chains once); ' +
-          're-fetching it from the party you are trying not to trust defeats the point',
+          'adapter + compliance-issuer addresses pinned out-of-band at integration time; ' +
+          're-fetching them from the party you are trying not to trust defeats the point',
       },
     },
     chainAnchors: {

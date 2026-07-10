@@ -1,22 +1,40 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, type VerificationCheck } from '../lib/api';
 import { useLang, type TKey } from '../lib/i18n';
 import { ExtLink, CopyText, CheckRow, Spinner, OfflineVerifyHint, HankoStamp } from '../components/ui';
 import { usdc, shortAddr, shortHash } from '../lib/format';
 
-function ReceiptRow({ label }: { label: string }) {
+// PASS/FAIL comes from the shared verification core's latest real run —
+// this component renders the report, it never asserts an outcome itself
+function ReceiptRow({ label, pass }: { label: string; pass: boolean | undefined }) {
   return (
     <div className="flex items-center justify-between text-[0.82rem] py-1">
       <span className="text-ink2">{label}</span>
-      <span className="text-good font-bold text-xs tracking-wider">PASS</span>
+      {pass === undefined ? (
+        <span className="text-ink3 text-xs">…</span>
+      ) : (
+        <span className={`font-bold text-xs tracking-wider ${pass ? 'text-good' : 'text-bad'}`}>
+          {pass ? 'PASS' : 'FAIL'}
+        </span>
+      )}
     </div>
   );
 }
 
+// the five per-leg checks the core actually runs, in display order
+const LEG_CHECK_ROWS: [suffix: string, key: TKey][] = [
+  ['-verifier', 'receipt.verifier'],
+  ['-attestations', 'receipt.attest'],
+  ['-commercial', 'receipt.commercial'],
+  ['-evidence-hash', 'receipt.evidence'],
+  ['-anchor', 'receipt.anchored'],
+];
+
 function LegReceipt({
   leg,
   explorer,
+  checks,
 }: {
   leg: {
     leg: string;
@@ -27,27 +45,20 @@ function LegReceipt({
     verifierDecision: { outcomeClass?: string };
   };
   explorer: string;
+  checks: VerificationCheck[] | null;
 }) {
   const { t } = useLang();
   const [tech, setTech] = useState(false);
-  const rows: TKey[] = [
-    'receipt.mandateSig',
-    'receipt.payer',
-    'receipt.recipient',
-    'receipt.tokenAmount',
-    'receipt.kyc',
-    'receipt.sanctions',
-    'receipt.observed',
-  ];
+  const chk = (suffix: string) => checks?.find((c) => c.id === `${leg.leg}${suffix}`)?.pass;
   return (
     <div className="rounded-xl border border-line bg-(--paper2)/50 p-5 relative">
       <div className="flex items-start justify-between gap-3">
         <span className="font-display font-bold text-lg capitalize">{leg.leg} settlement</span>
-        <HankoStamp size="sm" label={leg.verifierDecision.outcomeClass ?? 'ACCEPT'} />
+        {chk('-verifier') && <HankoStamp size="sm" label="ACCEPT" />}
       </div>
       <div className="mt-2 divide-y divide-(--line)">
-        {rows.map((k) => (
-          <ReceiptRow key={k} label={t(k)} />
+        {LEG_CHECK_ROWS.map(([suffix, k]) => (
+          <ReceiptRow key={k} label={t(k)} pass={chk(suffix)} />
         ))}
       </div>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
@@ -104,8 +115,16 @@ export default function Showcase() {
   const funding = packet.hspSettlement.legs.find((l) => l.leg === 'funding');
   const repayment = packet.hspSettlement.legs.find((l) => l.leg === 'repayment');
   const explorer = 'https://testnet-explorer.hsk.xyz';
+  const report = data.verification;
+  const chk = (id: string) => report?.checks.find((c) => c.id === id)?.pass;
 
-  const timeline = ['Registered', 'Funded', 'Repaid', 'Packet anchored'];
+  // each step is derived from chain-backed state, not asserted
+  const timeline: [string, boolean][] = [
+    ['Registered', true],
+    ['Funded', Boolean(funding)],
+    ['Repaid', invoice.status === 'Repaid'],
+    ['Packet anchored', Boolean(chk('packet-hash'))],
+  ];
 
   const packetItems: TKey[] = [
     'packet.i1',
@@ -128,17 +147,19 @@ export default function Showcase() {
           </h1>
           <p className="text-ink2 mt-2 max-w-2xl leading-relaxed text-sm">{t('showcase.sub')}</p>
         </div>
-        <HankoStamp size="lg" />
+        {report?.allPass && <HankoStamp size="lg" />}
       </div>
 
       {/* lifecycle timeline */}
       <div className="card px-6 py-5 mt-8">
         <div className="flex items-center">
-          {timeline.map((s, i) => (
+          {timeline.map(([s, done], i) => (
             <div key={s} className={`flex items-center ${i < timeline.length - 1 ? 'flex-1' : ''}`}>
               <div className="flex flex-col items-center gap-1.5">
-                <span className="h-7 w-7 rounded-full bg-(--good-soft) text-good flex items-center justify-center text-xs font-black">
-                  ✓
+                <span
+                  className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-black ${done ? 'bg-(--good-soft) text-good' : 'bg-(--paper2) text-ink3'}`}
+                >
+                  {done ? '✓' : '…'}
                 </span>
                 <span className="text-[0.68rem] font-bold text-ink2 whitespace-nowrap">{s}</span>
               </div>
@@ -146,6 +167,12 @@ export default function Showcase() {
             </div>
           ))}
         </div>
+        {report && (
+          <p className="text-[0.68rem] text-ink3 mt-3 tabular-nums border-t border-line pt-2.5">
+            {t('showcase.verifiedAt')} {new Date(report.verifiedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC
+            · block {report.blockNumber} · {report.passed}/{report.total}
+          </p>
+        )}
       </div>
 
       {/* money flow */}
@@ -156,7 +183,9 @@ export default function Showcase() {
             <div className="mono text-xs text-ink3">{shortAddr(invoice.lender)}</div>
           </div>
           <div className="flex-1 flex flex-col items-center">
-            <span className="tabular-nums font-bold text-accent">${usdc(invoice.discountedAmount)} USDC · HSP ACCEPT</span>
+            <span className="tabular-nums font-bold text-accent">
+              ${usdc(invoice.discountedAmount)} USDC{chk('funding-verifier') ? ' · HSP ACCEPT' : ''}
+            </span>
             <div className="w-full flex items-center text-accent" aria-hidden>
               <div className="h-px bg-(--accent) flex-1" />
               <span className="-my-1">▶</span>
@@ -166,7 +195,7 @@ export default function Showcase() {
               <div className="h-px bg-(--good) flex-1" />
             </div>
             <span className="tabular-nums font-bold text-good mt-1">
-              ${usdc(inv.faceAmountBaseUnits)} USDC · HSP ACCEPT
+              ${usdc(inv.faceAmountBaseUnits)} USDC{chk('repayment-verifier') ? ' · HSP ACCEPT' : ''}
             </span>
           </div>
           <div className="text-center flex-none max-w-[11rem]">
@@ -233,8 +262,8 @@ export default function Showcase() {
       <div className="card p-6 mt-6">
         <div className="section-label mb-5">{t('showcase.legs')}</div>
         <div className="grid gap-4 md:grid-cols-2">
-          {funding && <LegReceipt leg={funding} explorer={explorer} />}
-          {repayment && <LegReceipt leg={repayment} explorer={explorer} />}
+          {funding && <LegReceipt leg={funding} explorer={explorer} checks={report?.checks ?? null} />}
+          {repayment && <LegReceipt leg={repayment} explorer={explorer} checks={report?.checks ?? null} />}
         </div>
       </div>
 
@@ -268,12 +297,18 @@ export default function Showcase() {
         <div className="grid gap-x-8 gap-y-1.5 sm:grid-cols-2 rounded-xl border border-line bg-(--paper2)/50 p-5">
           {packetItems.map((k) => (
             <div key={k} className="flex items-center gap-2 text-sm">
-              <span className="text-good font-bold">✓</span>
+              <span className="text-accent font-bold" aria-hidden>▸</span>
               <span className="text-ink2">{t(k)}</span>
             </div>
           ))}
-          <div className="sm:col-span-2 border-t border-line mt-2 pt-2.5 font-bold text-good text-sm">
-            {t('packet.checks')}
+          <div className="sm:col-span-2 border-t border-line mt-2 pt-2.5 font-bold text-sm">
+            {report ? (
+              <span className={report.allPass ? 'text-good' : 'text-bad'}>
+                {report.passed}/{report.total} {t('packet.checks')}
+              </span>
+            ) : (
+              <span className="text-ink3">… {t('packet.checks')}</span>
+            )}
           </div>
         </div>
 
@@ -281,8 +316,12 @@ export default function Showcase() {
           <div className="rounded-xl border border-line bg-(--paper2)/50 p-5 my-4 fade-in">
             <div className="text-sm font-bold mb-2">{t('showcase.checksTitle')}</div>
             {verify.data.checks.map((c) => (
-              <CheckRow key={c.label} pass={c.pass} label={c.label} />
+              <CheckRow key={c.id} pass={c.pass} label={c.label} />
             ))}
+            <p className="text-[0.68rem] text-ink3 mt-2.5 tabular-nums">
+              {new Date(verify.data.verifiedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC · block{' '}
+              {verify.data.blockNumber}
+            </p>
           </div>
         )}
 

@@ -18,7 +18,7 @@ export interface InvoiceFields {
   currency: string;
   issueDate: string; // ISO date
   termDays: number;
-  confidence: number; // 0..1
+  extractionConfidence: number; // 0..1 — how confident the EXTRACTION is; says nothing about credit
 }
 
 export interface RiskReport {
@@ -83,14 +83,15 @@ export async function parseInvoice(documentText: string): Promise<InvoiceFields>
       'Extract structured fields from this invoice document. Reply with ONLY a JSON object:',
       '{"invoiceNumber": string, "sellerName": string, "payerName": string,',
       ' "amountBaseUnits": string (amount in stablecoin base units, 6 decimals — e.g. "5.00" => "5000000"),',
-      ' "currency": string, "issueDate": "YYYY-MM-DD", "termDays": number, "confidence": number 0..1}',
+      ' "currency": string, "issueDate": "YYYY-MM-DD", "termDays": number,',
+      ' "extractionConfidence": number 0..1 (confidence that the fields were read correctly — NOT a credit opinion)}',
       '',
       '--- DOCUMENT ---',
       documentText,
     ].join('\n'),
   );
   if (llmText) {
-    const parsed = extractJson(llmText) as Partial<InvoiceFields> | null;
+    const parsed = extractJson(llmText) as (Partial<InvoiceFields> & { confidence?: number }) | null;
     if (parsed?.amountBaseUnits && parsed.invoiceNumber) {
       return {
         invoiceNumber: String(parsed.invoiceNumber),
@@ -100,7 +101,7 @@ export async function parseInvoice(documentText: string): Promise<InvoiceFields>
         currency: String(parsed.currency ?? 'USDC'),
         issueDate: String(parsed.issueDate ?? new Date().toISOString().slice(0, 10)),
         termDays: Number(parsed.termDays ?? 30),
-        confidence: Math.min(1, Math.max(0, Number(parsed.confidence ?? 0.8))),
+        extractionConfidence: Math.min(1, Math.max(0, Number(parsed.extractionConfidence ?? parsed.confidence ?? 0.8))),
       };
     }
   }
@@ -119,7 +120,7 @@ export async function parseInvoice(documentText: string): Promise<InvoiceFields>
     currency: String(doc.currency ?? 'USDC'),
     issueDate: String(doc.issueDate ?? new Date().toISOString().slice(0, 10)),
     termDays: Number(doc.termDays ?? 30),
-    confidence: 0.99,
+    extractionConfidence: 0.99,
   };
 }
 
@@ -130,13 +131,17 @@ export async function assessRisk(fields: InvoiceFields): Promise<RiskReport> {
   const llmText = await callLLM(
     [
       'You are an autonomous receivables underwriter for invoice discounting.',
-      'Assess this invoice and reply with ONLY a JSON object:',
-      '{"grade": "A"|"B"|"C", "discountBps": number (annualized-equivalent up-front discount, 100..800),',
-      ' "rationale": string (2-3 sentences, professional), "factors": {string: string}}',
-      'Grade A = strong payer & short tenor; C = weak signals. Be conservative.',
+      'You have NO external credit data. Assess ONLY the structured facts provided',
+      '(tenor, dates, field completeness and consistency). Never infer creditworthiness',
+      'from a company name, brand, or country — treat every party as an unknown counterparty.',
+      'Reply with ONLY a JSON object:',
+      '{"grade": "A"|"B"|"C",',
+      ' "discountBps": number (up-front discount charged on face value for the whole tenor, basis points, 100..800 — NOT an annualized rate),',
+      ' "rationale": string (2-3 sentences, professional; explicitly note the assessment uses document-level signals only, with no external credit data),',
+      ' "factors": {string: string}}',
+      'Grade A = short tenor + complete, internally consistent document; C = long tenor or inconsistent data. Be conservative.',
       `The face value is exactly ${amountHuman} ${fields.currency} — a small demo-scale test amount.`,
       `Refer to it as "${amountHuman} ${fields.currency}" if you mention it; never reinterpret its magnitude.`,
-      'Base your assessment on tenor, payer identity and workflow signals rather than exposure size.',
       '',
       `Invoice: ${JSON.stringify({ ...fields, amountHuman: `${amountHuman} ${fields.currency}` })}`,
     ].join('\n'),
@@ -167,13 +172,13 @@ export async function assessRisk(fields: InvoiceFields): Promise<RiskReport> {
     discountBps,
     rationale:
       `Tenor ${fields.termDays}d and face value ${amount} ${fields.currency} imply ${grade}-grade risk ` +
-      `under the fallback rule set; up-front discount ${(discountBps / 100).toFixed(2)}%.`,
+      `under the fallback rule set; up-front discount ${(discountBps / 100).toFixed(2)}% of face for the whole tenor. ` +
+      'Assessment uses document-level signals only — no external credit data.',
     factors: { tenorDays: String(fields.termDays), faceValue: `${amount} ${fields.currency}` },
     assessedAt: new Date().toISOString(),
   };
 }
 
-/** discounted = face * (1 - discountBps/10000), floored to integer base units */
-export function discountedAmount(faceBaseUnits: bigint, discountBps: number): bigint {
-  return (faceBaseUnits * BigInt(10_000 - discountBps)) / 10_000n;
-}
+// deal math lives with the packet definition (zero-secret import graph);
+// re-exported here for callers that think of it as underwriting output
+export { discountedAmount } from './packet.ts';

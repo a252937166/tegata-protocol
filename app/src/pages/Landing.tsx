@@ -5,11 +5,19 @@ import { useLang, type TKey } from '../lib/i18n';
 import { HankoStamp, StatusBadge } from '../components/ui';
 import { usdc, shortAddr } from '../lib/format';
 
-function CheckLine({ label }: { label: string }) {
+// Every mark on this card is read from the server's last REAL run of the
+// shared verification core (the same checks as the auditor CLI). Nothing
+// here asserts PASS on its own: no report yet → pending dots, a failing
+// check → a visible ✗, and the hanko only appears when every check passed.
+function CheckLine({ label, pass }: { label: string; pass: boolean | undefined }) {
   return (
     <div className="flex items-center justify-between gap-3 text-[0.8rem]">
       <span className="text-ink2">{label}</span>
-      <span className="text-good font-bold">✓</span>
+      {pass === undefined ? (
+        <span className="text-ink3">…</span>
+      ) : (
+        <span className={`font-bold ${pass ? 'text-good' : 'text-bad'}`}>{pass ? '✓' : '✗'}</span>
+      )}
     </div>
   );
 }
@@ -24,11 +32,15 @@ function VerifiedDealCard() {
   const inv = data.invoice;
   const f = p.invoice.parsedFields;
   const r = p.invoice.riskReport;
+  const report = data.verification;
+  const chk = (id: string) => report?.checks.find((c) => c.id === id)?.pass;
   return (
     <div className="card p-6 relative overflow-visible">
-      <div className="absolute -top-5 -right-4 bg-(--card) rounded-xl">
-        <HankoStamp size="md" />
-      </div>
+      {report?.allPass && (
+        <div className="absolute -top-5 -right-4 bg-(--card) rounded-xl">
+          <HankoStamp size="md" />
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <span className="section-label">
           {t('hero.deal.title')} #{p.invoice.registryId}
@@ -70,7 +82,9 @@ function VerifiedDealCard() {
               <div className="h-px bg-(--accent) flex-1" />
               <span className="-my-1">▶</span>
             </div>
-            <span className="text-[0.65rem] text-ink3 mt-0.5">HSP · ACCEPT</span>
+            <span className="text-[0.65rem] text-ink3 mt-0.5">
+              {chk('funding-verifier') ? 'HSP · ACCEPT' : 'HSP'}
+            </span>
           </div>
           <div className="text-center">
             <div className="font-bold">{t('hero.deal.sme')}</div>
@@ -80,11 +94,16 @@ function VerifiedDealCard() {
       </div>
 
       <div className="mt-4 space-y-1.5 border-t border-line pt-3.5">
-        <CheckLine label={t('hero.deal.mandate')} />
-        <CheckLine label={t('hero.deal.kyc')} />
-        <CheckLine label={t('hero.deal.sanctions')} />
-        <CheckLine label={t('hero.deal.receipt')} />
+        <CheckLine label={t('hero.deal.mandate')} pass={chk('funding-verifier')} />
+        <CheckLine label={t('hero.deal.kyc')} pass={chk('funding-attestations')} />
+        <CheckLine label={t('hero.deal.sanctions')} pass={chk('funding-commercial')} />
+        <CheckLine label={t('hero.deal.receipt')} pass={chk('funding-anchor')} />
       </div>
+      {report && (
+        <div className="text-[0.65rem] text-ink3 mt-2.5 tabular-nums">
+          {t('hero.deal.verifiedAt')} · {report.passed}/{report.total} · block {report.blockNumber}
+        </div>
+      )}
 
       <Link to="/showcase" className="btn w-full mt-5 !border-(--accent) text-accent">
         {t('hero.deal.open')} →
@@ -109,6 +128,7 @@ function RailArrow() {
 export default function Landing() {
   const { t } = useLang();
   const { data: cfg } = useQuery({ queryKey: ['config'], queryFn: api.config, staleTime: 60_000 });
+  const { data: showcase } = useQuery({ queryKey: ['showcase'], queryFn: api.showcase, staleTime: 60_000 });
 
   const diffs: [TKey, TKey][] = [
     ['diff.1.t', 'diff.1.b'],
@@ -116,10 +136,18 @@ export default function Landing() {
     ['diff.3.t', 'diff.3.b'],
   ];
 
+  // metrics are derived, never asserted: contract count from live config,
+  // leg/check counts from the latest real verification-core run
+  const report = showcase?.verification ?? null;
+  const legsTotal = showcase?.packet.hspSettlement.legs.length ?? 0;
+  const legsAccept = report
+    ? report.checks.filter((c) => c.id.endsWith('-verifier') && c.pass).length
+    : 0;
+  const contractCount = cfg ? Object.keys(cfg.contracts).length : 0;
   const metrics: { v: string; k: TKey }[] = [
-    { v: cfg?.mainnet.deployed ? '3' : '3', k: 'metrics.contracts' },
-    { v: '2 / 2', k: 'metrics.legs' },
-    { v: '14 / 14', k: 'metrics.checks' },
+    { v: cfg ? String(contractCount * (cfg.mainnet.deployed ? 2 : 1)) : '…', k: 'metrics.contracts' },
+    { v: report ? `${legsAccept} / ${legsTotal}` : '…', k: 'metrics.legs' },
+    { v: report ? `${report.passed} / ${report.total}` : '…', k: 'metrics.checks' },
     { v: '0', k: 'metrics.custody' },
   ];
 
@@ -153,9 +181,17 @@ export default function Landing() {
                 <span className="h-1.5 w-1.5 rounded-full bg-good inline-block" /> MAINNET LIVE
               </span>
             )}
-            <span className="text-ink2">2/2 HSP ACCEPT</span>
-            <span className="text-ink2">14/14 CHECKS PASS</span>
-            <span className="text-ink2">ZERO CUSTODY</span>
+            {report && (
+              <span className="text-ink2">
+                {legsAccept}/{legsTotal} HSP ACCEPT
+              </span>
+            )}
+            {report && (
+              <span className="text-ink2">
+                {report.passed}/{report.total} CHECKS PASS
+              </span>
+            )}
+            <span className="text-ink2">0 USER FUNDS HELD</span>
           </div>
         </div>
         <VerifiedDealCard />
@@ -171,6 +207,12 @@ export default function Landing() {
             </div>
           ))}
         </div>
+        {report && (
+          <p className="text-xs text-ink3 mt-3 tabular-nums">
+            {t('metrics.caption')} {new Date(report.verifiedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC ·
+            block {report.blockNumber} · Tegata #{report.invoiceId}
+          </p>
+        )}
       </section>
 
       {/* differentiators */}

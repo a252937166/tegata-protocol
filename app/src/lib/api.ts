@@ -6,7 +6,28 @@ export interface InvoiceFields {
   currency: string;
   issueDate: string;
   termDays: number;
-  confidence: number;
+  /** confidence the fields were EXTRACTED correctly — not a credit opinion */
+  extractionConfidence?: number;
+  /** legacy field name on records underwritten before the rename */
+  confidence?: number;
+}
+export interface VerificationCheck {
+  id: string;
+  label: string;
+  pass: boolean;
+  detail?: string;
+}
+/** One real run of the shared verification core — the ONLY source of PASS marks. */
+export interface VerificationReport {
+  invoiceId: string;
+  packetHash: `0x${string}`;
+  checks: VerificationCheck[];
+  passed: number;
+  total: number;
+  allPass: boolean;
+  verifiedAt: string;
+  chainId: number;
+  blockNumber: string;
 }
 export interface RiskReport {
   engine: string;
@@ -129,11 +150,7 @@ export const api = {
       `/api/repay/${invoiceId}`,
     ),
   packet: (invoiceId: string) => req<{ packet: unknown; packetHash: string }>('GET', `/api/packet/${invoiceId}`),
-  verify: (invoiceId: string) =>
-    req<{ checks: { label: string; pass: boolean }[]; allPass: boolean; packetHash: string }>(
-      'POST',
-      `/api/verify/${invoiceId}`,
-    ),
+  verify: (invoiceId: string) => req<VerificationReport>('POST', `/api/verify/${invoiceId}`),
   showcase: () =>
     req<{
       packet: Record<string, never> & {
@@ -165,6 +182,7 @@ export const api = {
         };
       };
       invoice: ApiInvoice;
+      verification: VerificationReport | null;
       links: Record<string, string>;
     }>('GET', '/api/showcase'),
 };

@@ -28,6 +28,7 @@ import { putDoc, getDoc } from './docstore.ts';
 import { preparePayment, submitPayment } from './hsp-relay.ts';
 import { verifyAndAnchor, settleLeg } from './settle.ts';
 import { buildPacketForInvoice } from './packet-service.ts';
+import { verifyPacket, type VerificationReport } from './verification-core.ts';
 import { ensureOpenInvoices, startReplenishLoop } from './replenish.ts';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -36,15 +37,45 @@ const borrowerAccount = privateKeyToAccount(cfg.borrowerKey);
 
 // ---------------------------------------------------------------- utilities
 
+// Browser callers are same-origin in production (nginx proxies /api). The
+// only cross-origin callers we serve are local dev builds.
+const CORS_ALLOWLIST = new Set([
+  'https://tegata.axiqo.xyz',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+]);
+type ResWithOrigin = ServerResponse & { reqOrigin?: string };
+
 function json(res: ServerResponse, status: number, body: unknown) {
   const s = JSON.stringify(body, (_k, v) => (typeof v === 'bigint' ? v.toString() : v));
-  res.writeHead(status, {
-    'content-type': 'application/json',
-    'access-control-allow-origin': '*',
-    'access-control-allow-headers': 'content-type',
-    'access-control-allow-methods': 'GET,POST,OPTIONS',
-  });
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  const origin = (res as ResWithOrigin).reqOrigin;
+  if (origin && CORS_ALLOWLIST.has(origin)) {
+    headers['access-control-allow-origin'] = origin;
+    headers['access-control-allow-headers'] = 'content-type';
+    headers['access-control-allow-methods'] = 'GET,POST,OPTIONS';
+    headers['vary'] = 'origin';
+  }
+  res.writeHead(status, headers);
   res.end(s);
+}
+
+// ------------------------------------------------- showcase verification cache
+// The web app's PASS marks all come from this: a real, periodically re-run
+// execution of the shared verification core over the sample packet.
+let showcaseVerification: VerificationReport | null = null;
+async function refreshShowcaseVerification() {
+  try {
+    const sample = JSON.parse(
+      readFileSync(resolve(repoRoot, 'packets', 'sample-compliance-packet.json'), 'utf8'),
+    );
+    showcaseVerification = await verifyPacket(sample);
+    console.log(
+      `[verify] showcase #${showcaseVerification.invoiceId}: ${showcaseVerification.passed}/${showcaseVerification.total} at block ${showcaseVerification.blockNumber}`,
+    );
+  } catch (e) {
+    console.error('[verify] showcase verification failed:', (e as Error).message);
+  }
 }
 
 async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -67,6 +98,19 @@ const reservations = new Map<string, { payer: string; until: number }>();
 function activeReservation(invoiceId: string) {
   const r = reservations.get(invoiceId);
   return r && r.until > Date.now() ? r : undefined;
+}
+
+// global faucet budget: treasury drips are capped per UTC day regardless of
+// how many IPs ask (per-IP limiting alone doesn't bound total spend)
+const FAUCET_DAILY_MAX = 60;
+const faucetSpend = { day: '', n: 0 };
+function faucetBudgetOk(): boolean {
+  const day = new Date().toISOString().slice(0, 10);
+  if (faucetSpend.day !== day) {
+    faucetSpend.day = day;
+    faucetSpend.n = 0;
+  }
+  return ++faucetSpend.n <= FAUCET_DAILY_MAX;
 }
 
 // naive per-IP rate limiter (protects operator keys + faucet relay)
@@ -174,6 +218,9 @@ async function route(req: IncomingMessage, res: ServerResponse) {
 
   if (path === '/api/faucet' && method === 'POST') {
     if (limited(req, 'faucet', 10)) return json(res, 429, { error: 'rate-limited' });
+    if (!faucetBudgetOk()) {
+      return json(res, 429, { error: 'faucet-daily-budget-exhausted', detail: 'use the public HSP sandbox faucet directly' });
+    }
     const { address } = await readBody(req);
     const to = getAddress(String(address));
     // primary: relay to the HSP sandbox faucet
@@ -298,6 +345,25 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       to = inv.lender;
       amount = inv.faceAmount;
     }
+    // fail before the wallet pops, not after the transfer lands
+    const [usdcBal, gasBal] = await Promise.all([
+      publicClient.readContract({
+        address: cfg.stablecoin,
+        abi: [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] }] as const,
+        functionName: 'balanceOf',
+        args: [payer],
+      }) as Promise<bigint>,
+      publicClient.getBalance({ address: payer }),
+    ]);
+    if (usdcBal < amount) {
+      return json(res, 412, {
+        error: 'insufficient-usdc',
+        detail: `this leg settles ${amount} base units but the wallet holds ${usdcBal} — use the faucet step first`,
+      });
+    }
+    if (gasBal < parseEther('0.0003')) {
+      return json(res, 412, { error: 'insufficient-gas', detail: 'not enough HSK for the settlement transaction — use the faucet step first' });
+    }
     const prepared = preparePayment({ payer, to, amount });
     return json(res, 200, { ...prepared, leg, invoiceId: invoiceId.toString(), to, amount: amount.toString() });
   }
@@ -310,6 +376,53 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const inv = await getInvoice(invoiceId);
     const expectedPayee = leg === 'funding' ? inv.borrower : inv.lender;
 
+    // ---- commercial-terms binding -------------------------------------
+    // The client's mandate is NEVER the source of truth for the deal terms.
+    // Recompute the quote from trusted state (chain + underwriting record)
+    // and refuse any mandate that does not match it exactly: a modified
+    // client must not be able to underpay, pay the wrong party, use the
+    // wrong token or settle on the wrong chain and still advance the
+    // invoice lifecycle.
+    const doc = getDoc(inv.invoiceHash);
+    if (!doc) return json(res, 409, { error: 'missing-underwriting-record' });
+    if (keccakOfJson(doc.risk) !== inv.riskReportHash) {
+      return json(res, 409, { error: 'risk-report-hash-mismatch' });
+    }
+    const expectedAmount =
+      leg === 'funding' ? discountedAmount(inv.faceAmount, doc.risk.discountBps) : inv.faceAmount;
+    const mandate = body.mandateBody as {
+      amount?: string;
+      token?: string;
+      chainId?: number;
+      signer?: { payload: string };
+      recipient?: { payload: string };
+    };
+    const hexTail = (p?: string) => (p ? `0x${p.slice(-40)}`.toLowerCase() : '');
+    const mandatePayer = hexTail(mandate.signer?.payload);
+    const mandatePayee = hexTail(mandate.recipient?.payload);
+    if (BigInt(mandate.amount ?? '0') !== expectedAmount) {
+      return json(res, 409, { error: 'commercial-amount-mismatch', expected: expectedAmount.toString() });
+    }
+    if ((mandate.token ?? '').toLowerCase() !== cfg.stablecoin.toLowerCase()) {
+      return json(res, 409, { error: 'unexpected-settlement-token' });
+    }
+    if (mandate.chainId !== cfg.anchorChainId) {
+      return json(res, 409, { error: 'unexpected-settlement-chain' });
+    }
+    if (mandatePayee !== expectedPayee.toLowerCase()) {
+      return json(res, 409, { error: 'payee-does-not-match-invoice' });
+    }
+    if (leg === 'repayment' && mandatePayer !== inv.borrower.toLowerCase()) {
+      return json(res, 409, { error: 'repayment-payer-must-be-borrower' });
+    }
+    if (leg === 'funding') {
+      const r = activeReservation(invoiceId.toString());
+      if (r && r.payer.toLowerCase() !== mandatePayer) {
+        return json(res, 409, { error: 'payer-does-not-match-reservation' });
+      }
+    }
+    // -------------------------------------------------------------------
+
     const settledRes = await submitPayment({
       paymentId: String(body.paymentId) as Hex,
       mandateBody: body.mandateBody as Record<string, unknown>,
@@ -319,13 +432,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if (settledRes.status !== 'SETTLED') {
       return json(res, 502, { error: 'not-settled', status: settledRes.status });
     }
-    const amount = BigInt((body.mandateBody as { amount: string }).amount);
     const legPacket = await verifyAndAnchor({
       leg,
       invoiceId,
       paymentId: settledRes.paymentId,
       expectedPayee,
-      expectedAmount: amount,
+      expectedAmount, // server-recomputed — never the client's number
       settlementTxHash: String(body.txHash),
     });
     const { packetHash } = await buildPacketForInvoice(invoiceId, { anchorHash: true });
@@ -382,35 +494,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (verifyMatch && method === 'POST') {
     if (limited(req, 'verify', 60)) return json(res, 429, { error: 'rate-limited' });
     const id = BigInt(verifyMatch[1]);
-    const inv = await getInvoice(id);
-    const { packet, packetHash } = await buildPacketForInvoice(id);
-    const checks = [
-      {
-        label: 'HSP verifier re-run on every settlement leg (pinned adapter + issuer)',
-        pass: packet.hspSettlement.legs.every(
-          (l) => (l.verifierDecision as { outcomeClass?: string }).outcomeClass === 'ACCEPT',
-        ),
-      },
-      { label: 'packetHash matches TegataRegistry on-chain record', pass: inv.packetHash === packetHash },
-      { label: 'invoiceHash matches registry', pass: inv.invoiceHash === packet.invoice.invoiceHash },
-      {
-        label: 'riskReportHash re-derived from embedded report matches registry',
-        pass: keccakOfJson(packet.invoice.riskReport) === inv.riskReportHash,
-      },
-      {
-        label: 'funding paymentId matches registry',
-        pass:
-          inv.fundingPaymentId ===
-          (packet.hspSettlement.legs.find((l) => l.leg === 'funding')?.paymentId ?? inv.fundingPaymentId),
-      },
-      {
-        label: 'repayment paymentId matches registry',
-        pass:
-          inv.repaymentPaymentId ===
-          (packet.hspSettlement.legs.find((l) => l.leg === 'repayment')?.paymentId ?? inv.repaymentPaymentId),
-      },
-    ];
-    return json(res, 200, { checks, allPass: checks.every((c) => c.pass), packetHash });
+    // exact same check list as the auditor CLI — one verification core
+    const { packet } = await buildPacketForInvoice(id);
+    const report = await verifyPacket(packet);
+    return json(res, 200, report);
   }
 
   if (path === '/api/showcase' && method === 'GET') {
@@ -422,6 +509,9 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       return json(res, 200, {
         packet: sample,
         invoice: await enrich(id, await getInvoice(id)),
+        // last real run of the shared verification core over this packet —
+        // the UI renders THIS report; it never asserts PASS on its own
+        verification: showcaseVerification,
         links: {
           hspExplorerFunding: sample.hspSettlement.legs[0]?.hspExplorerUrl ?? '',
           hspExplorerRepayment: sample.hspSettlement.legs[1]?.hspExplorerUrl ?? '',
@@ -434,10 +524,33 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     }
   }
 
+  if (path === '/api/readiness' && method === 'GET') {
+    const out: Record<string, unknown> = {};
+    try {
+      out.chain = { ok: true, block: (await publicClient.getBlockNumber()).toString() };
+    } catch (e) {
+      out.chain = { ok: false, error: (e as Error).message };
+    }
+    try {
+      const r = await fetch(`${cfg.coordinatorUrl}/chains`, { signal: AbortSignal.timeout(10_000) });
+      out.coordinator = { ok: r.ok, status: r.status };
+    } catch (e) {
+      out.coordinator = { ok: false, error: (e as Error).message };
+    }
+    out.showcaseVerification = showcaseVerification
+      ? { ok: showcaseVerification.allPass, verifiedAt: showcaseVerification.verifiedAt }
+      : { ok: false, error: 'not yet computed' };
+    const ok = [out.chain, out.coordinator, out.showcaseVerification].every(
+      (c) => (c as { ok: boolean }).ok,
+    );
+    return json(res, ok ? 200 : 503, { ok, components: out });
+  }
+
   return json(res, 404, { error: 'not found' });
 }
 
 createServer((req, res) => {
+  (res as ResWithOrigin).reqOrigin = req.headers.origin;
   route(req, res).catch((e) => {
     console.error(`[api] ${req.method} ${req.url} failed:`, (e as Error).message);
     json(res, 500, { error: (e as Error).message });
@@ -448,4 +561,7 @@ createServer((req, res) => {
   // exactly ONE instance may replenish (chain state is shared; two writers
   // fork the off-chain document store) — set REPLENISH_DISABLED=1 on dev runs
   if (!process.env.REPLENISH_DISABLED) startReplenishLoop();
+  // real verification behind every PASS mark the site shows (read-only)
+  void refreshShowcaseVerification();
+  setInterval(() => void refreshShowcaseVerification(), 15 * 60_000).unref();
 });

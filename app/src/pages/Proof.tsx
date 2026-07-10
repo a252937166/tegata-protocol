@@ -36,6 +36,10 @@ export default function Proof() {
   const legs = sample?.hspSettlement.legs ?? [];
   const funding = legs.find((l) => l.leg === 'funding');
   const repayment = legs.find((l) => l.leg === 'repayment');
+  // every tile is derived from live config or the latest real run of the
+  // shared verification core — never asserted in page source
+  const report = showcase?.verification ?? null;
+  const chk = (id: string) => report?.checks.find((c) => c.id === id)?.pass ?? false;
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-14 fade-in">
@@ -48,20 +52,26 @@ export default function Proof() {
         {(
           [
             ['proof.tile.mainnet', 'proof.tile.mainnet.v', cfg.mainnet.deployed],
-            ['proof.tile.trust', 'proof.tile.trust.v', true],
-            ['proof.tile.life', 'proof.tile.life.v', true],
-            ['proof.tile.verifier', 'proof.tile.verifier.v', true],
+            ['proof.tile.trust', 'proof.tile.trust.v', chk('pin-adapter') && chk('pin-issuer')],
+            ['proof.tile.life', 'proof.tile.life.v', showcase?.invoice.status === 'Repaid' && chk('status')],
+            ['proof.tile.verifier', 'proof.tile.verifier.v', Boolean(report?.allPass)],
           ] as const
         ).map(([k, v, ok]) => (
           <div key={k} className={`rounded-xl border px-4 py-4 bg-(--card) ${ok ? 'border-(--good)' : 'border-line'}`}>
             <div className="text-[0.65rem] font-bold tracking-[0.12em] text-ink3">{t(k)}</div>
             <div className={`font-bold text-sm mt-1.5 ${ok ? 'text-good' : 'text-ink2'}`}>
-              {ok ? '✓ ' : ''}
+              {ok ? '✓ ' : '… '}
               {t(v)}
             </div>
           </div>
         ))}
       </div>
+      {report && (
+        <p className="text-xs text-ink3 mt-3 tabular-nums">
+          {t('proof.wallCaption')} {new Date(report.verifiedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC ·
+          block {report.blockNumber} · {report.passed}/{report.total}
+        </p>
+      )}
 
       {/* mainnet */}
       <div className="card p-6 mt-10">
@@ -200,6 +210,37 @@ export default function Proof() {
           </dl>
         </div>
       )}
+
+      {/* trust boundary — what re-verification covers vs what you still trust */}
+      <div className="card p-6 mt-6">
+        <div className="section-label mb-4">{t('proof.trust')}</div>
+        <div className="grid gap-6 md:grid-cols-3 text-sm">
+          <div>
+            <div className="font-bold text-good mb-2">{t('proof.trust.verify')}</div>
+            <ul className="space-y-1.5 text-ink2 text-[0.82rem] leading-relaxed list-disc pl-4">
+              <li>{t('proof.trust.v1')}</li>
+              <li>{t('proof.trust.v2')}</li>
+              <li>{t('proof.trust.v3')}</li>
+            </ul>
+          </div>
+          <div>
+            <div className="font-bold mb-2">{t('proof.trust.assume')}</div>
+            <ul className="space-y-1.5 text-ink2 text-[0.82rem] leading-relaxed list-disc pl-4">
+              <li>{t('proof.trust.a1')}</li>
+              <li>{t('proof.trust.a2')}</li>
+              <li>{t('proof.trust.a3')}</li>
+            </ul>
+          </div>
+          <div>
+            <div className="font-bold text-ink2 mb-2">{t('proof.trust.harden')}</div>
+            <ul className="space-y-1.5 text-ink2 text-[0.82rem] leading-relaxed list-disc pl-4">
+              <li>{t('proof.trust.h1')}</li>
+              <li>{t('proof.trust.h2')}</li>
+              <li>{t('proof.trust.h3')}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
 
       {/* kyc mode honesty card */}
       <div className="card p-6 mt-6">
