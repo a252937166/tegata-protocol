@@ -30,10 +30,10 @@
 
 **HashKey Chain Mainnet (chainId 177)** — same bytecode, one-command proof deployment via [`scripts/deploy-mainnet.sh`](scripts/deploy-mainnet.sh); addresses land in `deployments/hashkey-mainnet.json` and light up the [/proof](https://tegata.axiqo.xyz/proof) page automatically.
 
-**Sample packet (a real lifecycle, LLM-underwritten, repaid)** — [packets/sample-compliance-packet.json](packets/sample-compliance-packet.json):
+**Sample packet (a real lifecycle, LLM-underwritten, repaid — Tegata #15)** — [packets/sample-compliance-packet.json](packets/sample-compliance-packet.json):
 
-- funding paymentId [`0x78e8885b…`](https://hsp-hackathon.hashkeymerchant.com/explorer?id=0x78e8885b1880d9337ba4bc479b3ad672f86ffe66992118d09046bf4c02bc1d7a) · repayment paymentId [`0x5419ff68…`](https://hsp-hackathon.hashkeymerchant.com/explorer?id=0x5419ff68ae3e1268d3b88fdb34db7a1900079889b1603575cefb418c9371e3e5) (HSP Explorer decision traces)
-- on-chain anchors: [funding](https://testnet-explorer.hsk.xyz/tx/0x50027a21bafb07759f9039fd935688e800b721f64357d9675403b2d52a3a9711) · [repayment](https://testnet-explorer.hsk.xyz/tx/0x005757c1744e5b266057a144f1e76bc02ffe88c7b2953a24ac036b27474ebf11) · [packetHash](https://testnet-explorer.hsk.xyz/tx/0x2df596b32e08b0ac376f98035defe3138d2e6e24068110b430d015ebcf92cd5f)
+- funding paymentId [`0xaea9050a…`](https://hsp-hackathon.hashkeymerchant.com/explorer?id=0xaea9050a5a30a56b9c4469590163c1c462a8e792bc56ae4971811f82c6e8920c) · repayment paymentId [`0xa3dbe67c…`](https://hsp-hackathon.hashkeymerchant.com/explorer?id=0xa3dbe67c3cf38348885b906f8b08a5030812fb954ef816126477262c7e71275b) (HSP Explorer decision traces)
+- on-chain anchors: [register](https://testnet-explorer.hsk.xyz/tx/0x82a50778871859a3c031f0d87692ca3921062a8c059ea4af289cd073674bdedb) · [funding](https://testnet-explorer.hsk.xyz/tx/0x92629e2f6df049197fa4199009837c15901e34de854e7c6cdd1f6e95cc2b6f34) · [repayment](https://testnet-explorer.hsk.xyz/tx/0x389d9cfe3ed723ea079bf24c5491e6e362417476d61257f44ce5380c52d5b07c)
 
 ## Verify the packet offline — don't trust us
 
