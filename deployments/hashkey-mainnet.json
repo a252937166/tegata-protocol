@@ -1,0 +1,19 @@
+{
+  "chainId": 177,
+  "rpc": "https://mainnet.hsk.xyz",
+  "explorer": "https://hsk.blockscout.com",
+  "deployBlock": 24663668,
+  "contracts": {
+    "KycGate": "0xA36E8c13Ca1eF6493d9F57D74E1470fB3427Ee46",
+    "TegataRegistry": "0xE95D2E98955238F253436DFA7A057bbB1aBC3092",
+    "SettlementAnchor": "0x4e4739b08593dDfB8C66Ad03808d11064f906042"
+  },
+  "attestor": "0x38F0F604e715F5Dc4089D7BdCbD8aD8d0aF830f1",
+  "proof": {
+    "sampleInvoiceId": "1",
+    "registerTxHash": "0xf03623c4daf8cd3321c16b91b32bf5092676559cb6dd00270403c7782f72de64",
+    "packetAnchorTxHash": "0xdb983f9c77913785cb888359266da9d19fbca8d993643c9a98e769c657963a26",
+    "invoiceHash": "0x7ec4356766b5c0842c0957a77734031ab09430b2c06ccda376501d6d396550dd",
+    "packetHash": "0x543433cb1b972d8620f93cd7f7c529dd2da74f0deff94c9c5cbd8d4fe7074961"
+  }
+}

@@ -28,7 +28,15 @@
 | TegataRegistry | `0xE95D2E98955238F253436DFA7A057bbB1aBC3092` | [verified source](https://testnet-explorer.hsk.xyz/address/0xE95D2E98955238F253436DFA7A057bbB1aBC3092?tab=contract) |
 | SettlementAnchor | `0x4e4739b08593dDfB8C66Ad03808d11064f906042` | [verified source](https://testnet-explorer.hsk.xyz/address/0x4e4739b08593dDfB8C66Ad03808d11064f906042?tab=contract) |
 
-**HashKey Chain Mainnet (chainId 177)** — same bytecode, one-command proof deployment via [`scripts/deploy-mainnet.sh`](scripts/deploy-mainnet.sh); addresses land in `deployments/hashkey-mainnet.json` and light up the [/proof](https://tegata.axiqo.xyz/proof) page automatically.
+**HashKey Chain Mainnet (chainId 177)** — LIVE, same bytecode and addresses as testnet ([deployments/hashkey-mainnet.json](deployments/hashkey-mainnet.json)):
+
+| Contract | Address | |
+|---|---|---|
+| KycGate | `0xA36E8c13Ca1eF6493d9F57D74E1470fB3427Ee46` | [verified source](https://hsk.blockscout.com/address/0xA36E8c13Ca1eF6493d9F57D74E1470fB3427Ee46?tab=contract) |
+| TegataRegistry | `0xE95D2E98955238F253436DFA7A057bbB1aBC3092` | [verified source](https://hsk.blockscout.com/address/0xE95D2E98955238F253436DFA7A057bbB1aBC3092?tab=contract) |
+| SettlementAnchor | `0x4e4739b08593dDfB8C66Ad03808d11064f906042` | [verified source](https://hsk.blockscout.com/address/0x4e4739b08593dDfB8C66Ad03808d11064f906042?tab=contract) |
+
+Mainnet proof anchors (the showcase packet's hashes, anchored on mainnet): [sample invoice register](https://hsk.blockscout.com/tx/0xf03623c4daf8cd3321c16b91b32bf5092676559cb6dd00270403c7782f72de64) · [packetHash](https://hsk.blockscout.com/tx/0xdb983f9c77913785cb888359266da9d19fbca8d993643c9a98e769c657963a26). The live demo money flow runs on testnet funds by design — judges never spend real assets.
 
 **Sample packet (a real lifecycle, LLM-underwritten, repaid — Tegata #15)** — [packets/sample-compliance-packet.json](packets/sample-compliance-packet.json):
 
